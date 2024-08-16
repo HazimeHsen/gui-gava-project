@@ -12,7 +12,7 @@ public class Utility {
     public static String excutePost(String targetURL, String urlParameters) {
         HttpURLConnection connection = null;
         try {
-            // Create connection
+            @SuppressWarnings("deprecation")
             URL url = new URL(targetURL);
             connection = (HttpURLConnection) url.openConnection();
             connection.setRequestMethod("POST");
@@ -25,13 +25,11 @@ public class Utility {
             connection.setDoInput(true);
             connection.setDoOutput(true);
 
-            // Send request
             DataOutputStream wr = new DataOutputStream(connection.getOutputStream());
             wr.writeBytes(urlParameters);
             wr.flush();
             wr.close();
 
-            // Get Response
             InputStream is = connection.getInputStream();
             BufferedReader rd = new BufferedReader(new InputStreamReader(is));
             String line;

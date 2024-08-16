@@ -16,7 +16,7 @@ public class logIn extends JFrame implements ActionListener {
     JPasswordField password;
     JTextField email;
     JLabel lbl_password, lbl_email, message;
-    JButton btn_log, btn_reset;
+    JButton btn_log, btn_reset, btn_signup;
     JCheckBox show_password;
 
     logIn() {
@@ -41,7 +41,7 @@ public class logIn extends JFrame implements ActionListener {
         password.setBounds(300, 200, 300, 40);
 
         message = new JLabel(" ");
-        message.setBounds(300, 320, 300, 40);
+        message.setBounds(300, 370, 300, 40);
 
         btn_log = new JButton("Sign in");
         btn_log.setBounds(300, 290, 100, 40);
@@ -55,6 +55,10 @@ public class logIn extends JFrame implements ActionListener {
         show_password.setBounds(300, 240, 150, 40);
         show_password.addActionListener(this);
 
+        btn_signup = new JButton("Sign up");
+        btn_signup.setBounds(300, 340, 100, 40);
+        btn_signup.addActionListener(this);
+
         this.add(lbl_email);
         this.add(email);
         this.add(lbl_password);
@@ -62,11 +66,13 @@ public class logIn extends JFrame implements ActionListener {
         this.add(show_password);
         this.add(btn_log);
         this.add(btn_reset);
+        this.add(btn_signup);
         this.add(message);
 
         this.setVisible(true);
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public void actionPerformed(ActionEvent e) {
         if (e.getSource() == btn_log) {
@@ -74,20 +80,18 @@ public class logIn extends JFrame implements ActionListener {
             String pwdText = new String(password.getPassword());
 
             try {
-                // Create JSON object
                 JSONObject json = new JSONObject();
                 json.put("email", emailText);
                 json.put("password", pwdText);
 
-                // Convert JSON to String
                 String urlParameters = json.toString();
 
-                // Use Utility class to execute POST request
                 String response = Utility.excutePost("http://localhost:5000/api/users/login", urlParameters);
 
-                // Show the response
                 if (response != null && !response.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "Response: " + response);
+                    JOptionPane.showMessageDialog(this, "Login successful!");
+                    this.dispose(); 
+                    new HomePage(); 
                 } else {
                     JOptionPane.showMessageDialog(this, "Error: No response from server.");
                 }
@@ -110,6 +114,11 @@ public class logIn extends JFrame implements ActionListener {
             } else {
                 password.setEchoChar('*');
             }
+        }
+
+        if (e.getSource() == btn_signup) {
+            this.dispose(); 
+            new SignUp(); 
         }
     }
 
