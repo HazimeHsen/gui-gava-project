@@ -3,11 +3,6 @@ package java_project;
 import java.awt.Font;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
 import javax.swing.JFrame;
@@ -74,7 +69,6 @@ public class logIn extends JFrame implements ActionListener {
 
     @Override
     public void actionPerformed(ActionEvent e) {
-
         if (e.getSource() == btn_log) {
             String emailText = email.getText();
             String pwdText = new String(password.getPassword());
@@ -85,49 +79,23 @@ public class logIn extends JFrame implements ActionListener {
                 json.put("email", emailText);
                 json.put("password", pwdText);
 
-                // Send POST request
-                URL url = new URL("http://localhost:5000/api/users/login");
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-                conn.setRequestMethod("POST");
-                conn.setRequestProperty("Content-Type", "application/json; utf-8");
-                conn.setDoOutput(true);
+                // Convert JSON to String
+                String urlParameters = json.toString();
 
-                // Send JSON as a string
-                try (OutputStream os = conn.getOutputStream()) {
-                    byte[] input = json.toString().getBytes("utf-8");
-                    os.write(input, 0, input.length);
-                }
+                // Use Utility class to execute POST request
+                String response = Utility.excutePost("http://localhost:5000/api/users/login", urlParameters);
 
-                // Read response code
-                int responseCode = conn.getResponseCode();
-
-                // Read response
-                BufferedReader reader;
-                StringBuilder response = new StringBuilder();
-                if (responseCode == HttpURLConnection.HTTP_OK) {
-                    reader = new BufferedReader(new InputStreamReader(conn.getInputStream(), "utf-8"));
+                // Show the response
+                if (response != null && !response.isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Response: " + response);
                 } else {
-                    reader = new BufferedReader(new InputStreamReader(conn.getErrorStream(), "utf-8"));
-                }
-
-                String responseLine;
-                while ((responseLine = reader.readLine()) != null) {
-                    response.append(responseLine.trim());
-                }
-
-                reader.close();
-
-                if (responseCode == HttpURLConnection.HTTP_OK) {
-                    JOptionPane.showMessageDialog(this, "You logged in successfully!");
-                } else {
-                    JOptionPane.showMessageDialog(this, "Error: " + response.toString());
+                    JOptionPane.showMessageDialog(this, "Error: No response from server.");
                 }
 
             } catch (Exception ex) {
                 ex.printStackTrace();
                 JOptionPane.showMessageDialog(this, "An error occurred: " + ex.getMessage());
             }
-
         }
 
         if (e.getSource() == btn_reset) {
