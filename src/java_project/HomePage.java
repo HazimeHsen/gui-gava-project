@@ -4,11 +4,14 @@ import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
-import java.awt.FlowLayout;
 import java.awt.GridLayout;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.ArrayList;
+import java.util.List;
+import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
-import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -16,9 +19,14 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
+
+import java_project.models.ClassMember;
+import java_project.models.ClassRoom;
+import java_project.models.User;
 
 public class HomePage extends JFrame {
     private User user;
@@ -31,12 +39,11 @@ public class HomePage extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
 
-        setLayout(new BorderLayout()); 
+        setLayout(new BorderLayout());
 
         JPanel buttonPanel = new JPanel();
-        buttonPanel.setLayout(new FlowLayout()); 
         JButton createClassButton = new JButton("Create Class");
-        createClassButton.setPreferredSize(new Dimension(150, 30)); 
+        createClassButton.setPreferredSize(new Dimension(150, 30));
         createClassButton.addActionListener(e -> openCreateClassDialog());
         buttonPanel.add(createClassButton);
         add(buttonPanel, BorderLayout.NORTH);
@@ -107,15 +114,25 @@ public class HomePage extends JFrame {
             if (response != null && !response.isEmpty()) {
                 JSONParser parser = new JSONParser();
                 JSONArray classArray = (JSONArray) parser.parse(response);
-
                 classesPanel.removeAll();
 
                 for (Object obj : classArray) {
                     JSONObject classObj = (JSONObject) obj;
                     String className = (String) classObj.get("name");
                     String classDescription = (String) classObj.get("description");
+                    String classId = String.valueOf(classObj.get("id"));
 
-                    JPanel classCard = createClassCard(className, classDescription);
+                    JSONArray membersArray = (JSONArray) classObj.get("members");
+                    List<ClassMember> members = new ArrayList<>();
+                    for (Object memberObj : membersArray) {
+                        JSONObject memberJson = (JSONObject) memberObj;
+                        String userId = String.valueOf(memberJson.get("userId"));
+                        String role = (String) memberJson.get("role");
+                        members.add(new ClassMember(userId, role, classId));
+                    }
+
+                    ClassRoom classRoom = new ClassRoom(classId, className, classDescription, members);
+                    JPanel classCard = createClassCard(classRoom);
                     classesPanel.add(classCard);
                 }
 
@@ -130,25 +147,35 @@ public class HomePage extends JFrame {
         }
     }
 
-    private JPanel createClassCard(String className, String classDescription) {
+    private JPanel createClassCard(ClassRoom classRoom) {
         JPanel cardPanel = new JPanel();
         cardPanel.setLayout(new BoxLayout(cardPanel, BoxLayout.Y_AXIS));
         cardPanel.setBorder(BorderFactory.createLineBorder(Color.BLACK, 1));
-        cardPanel.setPreferredSize(new Dimension(250, 150)); 
-        cardPanel.setMinimumSize(new Dimension(250, 150)); 
+        cardPanel.setPreferredSize(new Dimension(250, 150));
+        cardPanel.setMinimumSize(new Dimension(250, 150));
 
-        JLabel nameLabel = new JLabel("Class Name: " + className);
+        JLabel nameLabel = new JLabel("Class Name: " + classRoom.getName());
         nameLabel.setFont(new Font("Arial", Font.BOLD, 14));
-        JLabel descriptionLabel = new JLabel("Description: " + classDescription);
+        JLabel descriptionLabel = new JLabel("Description: " + classRoom.getDescription());
 
         cardPanel.add(nameLabel);
         cardPanel.add(descriptionLabel);
+
+        cardPanel.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                SwingUtilities.invokeLater(() -> {
+                    dispose();
+                    new ClassDetails(classRoom, user).setVisible(true);
+                });
+            }
+        });
 
         return cardPanel;
     }
 
     public static void main(String[] args) {
         User user = new User("1", "John Doe", "john.doe@example.com");
-        javax.swing.SwingUtilities.invokeLater(() -> new HomePage(user).setVisible(true));
+        SwingUtilities.invokeLater(() -> new HomePage(user).setVisible(true));
     }
 }

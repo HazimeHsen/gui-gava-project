@@ -13,6 +13,8 @@ import javax.swing.JTextField;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
+import java_project.models.User;
+
 public class logIn extends JFrame implements ActionListener {
     JPasswordField password;
     JTextField email;

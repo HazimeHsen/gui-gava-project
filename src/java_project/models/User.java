@@ -1,4 +1,4 @@
-package java_project;
+package java_project.models;
 
 public class User {
     private String id;
