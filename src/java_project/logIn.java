@@ -11,6 +11,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 
 public class logIn extends JFrame implements ActionListener {
     JPasswordField password;
@@ -68,7 +69,8 @@ public class logIn extends JFrame implements ActionListener {
         this.add(btn_reset);
         this.add(btn_signup);
         this.add(message);
-
+        email.setText("hsen@gmail.com");
+        password.setText("hazime18");
         this.setVisible(true);
     }
 
@@ -86,12 +88,28 @@ public class logIn extends JFrame implements ActionListener {
 
                 String urlParameters = json.toString();
 
-                String response = Utility.excutePost("http://localhost:5000/api/users/login", urlParameters);
+                String response = Utility.executePost("http://localhost:5000/api/users/login", urlParameters);
 
                 if (response != null && !response.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "Login successful!");
-                    this.dispose(); 
-                    new HomePage(); 
+                    JSONParser parser = new JSONParser();
+                    JSONObject responseObject = (JSONObject) parser.parse(response);
+                    JSONObject userJson = (JSONObject) responseObject.get("user");
+
+                    if (userJson != null) {
+                        String id = String.valueOf(userJson.get("id"));
+                        String name = (String) userJson.get("name");
+                        String email = (String) userJson.get("email");
+                        User user = new User(id, name, email);
+
+                        this.dispose();
+
+                        javax.swing.SwingUtilities.invokeLater(() -> {
+                            new HomePage(user).setVisible(true);
+                        });
+
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Login failed: " + responseObject.get("error"));
+                    }
                 } else {
                     JOptionPane.showMessageDialog(this, "Error: No response from server.");
                 }
@@ -117,8 +135,8 @@ public class logIn extends JFrame implements ActionListener {
         }
 
         if (e.getSource() == btn_signup) {
-            this.dispose(); 
-            new SignUp(); 
+            this.dispose();
+            new SignUp();
         }
     }
 

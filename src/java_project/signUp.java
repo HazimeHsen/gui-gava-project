@@ -11,10 +11,11 @@ import javax.swing.JOptionPane;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
 
 public class SignUp extends JFrame implements ActionListener {
-    JPasswordField password;
-    JTextField name, email;
+    JTextField nameField, emailField;
+    JPasswordField passwordField;
     JLabel lbl_name, lbl_email, lbl_password, message;
     JButton btn_signup, btn_reset, btn_login;
     JCheckBox show_password;
@@ -22,56 +23,56 @@ public class SignUp extends JFrame implements ActionListener {
     SignUp() {
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setSize(800, 600);
-        this.setTitle("Signup Page");
+        this.setTitle("Sign Up Page");
         this.setLocationRelativeTo(null);
         this.setLayout(null);
 
         lbl_name = new JLabel("Name:");
-        lbl_name.setBounds(200, 50, 100, 40);
+        lbl_name.setBounds(200, 100, 100, 40);
         lbl_name.setFont(new Font("Arial", Font.BOLD, 16));
 
-        name = new JTextField();
-        name.setBounds(300, 50, 300, 40);
+        nameField = new JTextField();
+        nameField.setBounds(300, 100, 300, 40);
 
         lbl_email = new JLabel("Email:");
-        lbl_email.setBounds(200, 150, 100, 40);
+        lbl_email.setBounds(200, 160, 100, 40);
         lbl_email.setFont(new Font("Arial", Font.BOLD, 16));
 
-        email = new JTextField();
-        email.setBounds(300, 150, 300, 40);
+        emailField = new JTextField();
+        emailField.setBounds(300, 160, 300, 40);
 
         lbl_password = new JLabel("Password:");
-        lbl_password.setBounds(200, 250, 100, 40);
+        lbl_password.setBounds(200, 220, 100, 40);
         lbl_password.setFont(new Font("Arial", Font.BOLD, 16));
 
-        password = new JPasswordField();
-        password.setBounds(300, 250, 300, 40);
+        passwordField = new JPasswordField();
+        passwordField.setBounds(300, 220, 300, 40);
 
         message = new JLabel(" ");
         message.setBounds(300, 370, 300, 40);
 
         btn_signup = new JButton("Sign up");
-        btn_signup.setBounds(300, 320, 100, 40);
+        btn_signup.setBounds(300, 290, 100, 40);
         btn_signup.addActionListener(this);
 
         btn_reset = new JButton("Reset");
-        btn_reset.setBounds(500, 320, 100, 40);
+        btn_reset.setBounds(500, 290, 100, 40);
         btn_reset.addActionListener(this);
 
-        btn_login = new JButton("Log in");
-        btn_login.setBounds(300, 370, 100, 40);
-        btn_login.addActionListener(this);
-
         show_password = new JCheckBox("Show password");
-        show_password.setBounds(300, 290, 150, 40);
+        show_password.setBounds(300, 260, 150, 40);
         show_password.addActionListener(this);
 
+        btn_login = new JButton("Log in");
+        btn_login.setBounds(300, 340, 100, 40);
+        btn_login.addActionListener(this);
+
         this.add(lbl_name);
-        this.add(name);
+        this.add(nameField);
         this.add(lbl_email);
-        this.add(email);
+        this.add(emailField);
         this.add(lbl_password);
-        this.add(password);
+        this.add(passwordField);
         this.add(show_password);
         this.add(btn_signup);
         this.add(btn_reset);
@@ -85,9 +86,9 @@ public class SignUp extends JFrame implements ActionListener {
     @Override
     public void actionPerformed(ActionEvent e) {
         if (e.getSource() == btn_signup) {
-            String nameText = name.getText();
-            String emailText = email.getText();
-            String pwdText = new String(password.getPassword());
+            String nameText = nameField.getText();
+            String emailText = emailField.getText();
+            String pwdText = new String(passwordField.getPassword());
 
             try {
                 JSONObject json = new JSONObject();
@@ -97,12 +98,26 @@ public class SignUp extends JFrame implements ActionListener {
 
                 String urlParameters = json.toString();
 
-                String response = Utility.excutePost("http://localhost:5000/api/users/signup", urlParameters);
+                String response = Utility.executePost("http://localhost:5000/api/users/signup", urlParameters);
 
                 if (response != null && !response.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "Registration successful!");
-                    this.dispose(); 
-                    new HomePage(); 
+                    JSONParser parser = new JSONParser();
+                    JSONObject responseObject = (JSONObject) parser.parse(response);
+                    JSONObject userJson = (JSONObject) responseObject.get("user");
+
+                    if (userJson != null) {
+                        String id = String.valueOf(userJson.get("id"));
+                        String name = (String) userJson.get("name");
+                        String email = (String) userJson.get("email");
+                        User user = new User(id, name, email);
+
+                        JOptionPane.showMessageDialog(this, "Sign up successful!");
+                        this.dispose(); 
+
+                        new HomePage(user);
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Sign up failed: " + responseObject.get("error"));
+                    }
                 } else {
                     JOptionPane.showMessageDialog(this, "Error: No response from server.");
                 }
@@ -114,17 +129,17 @@ public class SignUp extends JFrame implements ActionListener {
         }
 
         if (e.getSource() == btn_reset) {
-            name.setText("");
-            email.setText("");
-            password.setText("");
+            nameField.setText("");
+            emailField.setText("");
+            passwordField.setText("");
             message.setText("");
         }
 
         if (e.getSource() == show_password) {
             if (show_password.isSelected()) {
-                password.setEchoChar((char) 0);
+                passwordField.setEchoChar((char) 0);
             } else {
-                password.setEchoChar('*');
+                passwordField.setEchoChar('*');
             }
         }
 
