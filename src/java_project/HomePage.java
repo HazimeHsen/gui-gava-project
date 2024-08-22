@@ -5,13 +5,16 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.GridLayout;
+import java.awt.Image;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -40,7 +43,8 @@ public class HomePage extends JFrame {
         setLocationRelativeTo(null);
 
         setLayout(new BorderLayout());
-
+        
+        // Create Class Button
         JPanel buttonPanel = new JPanel();
         JButton createClassButton = new JButton("Create Class");
         createClassButton.setPreferredSize(new Dimension(150, 30));
@@ -48,6 +52,7 @@ public class HomePage extends JFrame {
         buttonPanel.add(createClassButton);
         add(buttonPanel, BorderLayout.NORTH);
 
+        // Panel to display classes
         JPanel classesPanel = new JPanel();
         classesPanel.setLayout(new GridLayout(0, 3, 10, 10)); 
         JScrollPane scrollPane = new JScrollPane(classesPanel); 
@@ -154,13 +159,34 @@ public class HomePage extends JFrame {
         cardPanel.setPreferredSize(new Dimension(250, 150));
         cardPanel.setMinimumSize(new Dimension(250, 150));
 
+        // Label for the class name
         JLabel nameLabel = new JLabel("Class Name: " + classRoom.getName());
         nameLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        
+        // Label for the description
         JLabel descriptionLabel = new JLabel("Description: " + classRoom.getDescription());
 
+        // Adding the labels to the card
         cardPanel.add(nameLabel);
         cardPanel.add(descriptionLabel);
 
+        // Randomly select an image and add it to the card
+        String[] imagePaths = {
+            "C:\\Users\\USER\\Documents\\images\\admin.png",
+            // Add more image paths as needed
+        };
+
+        Random rand = new Random();
+        String selectedImagePath = imagePaths[rand.nextInt(imagePaths.length)];
+
+        ImageIcon icon = new ImageIcon(selectedImagePath);
+        Image img = icon.getImage();
+        Image scaledImg = img.getScaledInstance(200, 150, Image.SCALE_SMOOTH); // Adjust size as needed
+        JLabel imageLabel = new JLabel(new ImageIcon(scaledImg));
+        
+        cardPanel.add(imageLabel);
+
+        // Adding a mouse listener to the card for navigation
         cardPanel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -179,3 +205,4 @@ public class HomePage extends JFrame {
         SwingUtilities.invokeLater(() -> new HomePage(user).setVisible(true));
     }
 }
+ 

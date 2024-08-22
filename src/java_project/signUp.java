@@ -12,22 +12,23 @@ import javax.swing.JPasswordField;
 import javax.swing.JTextField;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
-
 import java_project.models.User;
+import javax.swing.ImageIcon;
 
-public class SignUp extends JFrame implements ActionListener {
+public class signUp extends JFrame implements ActionListener {
     JTextField nameField, emailField;
     JPasswordField passwordField;
     JLabel lbl_name, lbl_email, lbl_password, message;
     JButton btn_signup, btn_reset, btn_login;
     JCheckBox show_password;
 
-    SignUp() {
+    signUp() {
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setSize(800, 600);
         this.setTitle("Sign Up Page");
         this.setLocationRelativeTo(null);
         this.setLayout(null);
+        this.setIconImage(new ImageIcon("C:\\Users\\USER\\Documents\\images\\frame_icon.png").getImage());
 
         lbl_name = new JLabel("Name:");
         lbl_name.setBounds(200, 100, 100, 40);
@@ -152,6 +153,6 @@ public class SignUp extends JFrame implements ActionListener {
     }
 
     public static void main(String[] args) {
-        new SignUp();
+        new signUp();
     }
 }
