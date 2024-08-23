@@ -43,7 +43,7 @@ public class Utility {
 
         } catch (Exception e) {
             e.printStackTrace();
-            return null;
+            return e.toString();
 
         } finally {
             if (connection != null) {
@@ -74,7 +74,7 @@ public class Utility {
 
         } catch (Exception e) {
             e.printStackTrace();
-            return null;
+            return e.getMessage();
 
         } finally {
             if (connection != null) {

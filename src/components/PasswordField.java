@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package components;
 
 import java.awt.Color;
@@ -87,6 +83,7 @@ public class PasswordField extends JPasswordField {
             }
         });
         TimingTarget target = new TimingTargetAdapter() {
+            @SuppressWarnings("deprecation")
             @Override
             public void begin() {
                 animateHinText = getText().equals("");
@@ -187,6 +184,7 @@ public class PasswordField extends JPasswordField {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void setText(String string) {
         if (!getText().equals(string)) {

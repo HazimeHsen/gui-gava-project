@@ -28,6 +28,7 @@ public class ClassDetails extends JFrame {
     private ClassRoom classRoom;
     private User user;
     private boolean isAdmin;
+    @SuppressWarnings("unused")
     private boolean isModerator;
     private List<JCheckBox> userCheckboxes = new ArrayList<>();
 

@@ -10,18 +10,13 @@ import java.awt.geom.GeneralPath;
 import javax.swing.JPanel;
 
 public class Background extends JPanel {
-
-   
     public float getAnimate() {
         return animate;
     }
 
-    
     public void setAnimate(float animate) {
         this.animate = animate;
         repaint();
-        System.out.println("Animate value: " + animate);
-
     }
     
     private float easeOutQuint(float x) {
@@ -36,14 +31,13 @@ public class Background extends JPanel {
     }
     
     private float animate;
-    private int header = 50;
     
-    public Background() { // Corrected constructor
-        setOpaque(false); // Makes the panel non-opaque if you want to see through it
+    public Background() {
+        setOpaque(false);
     }
 
     @Override
-    public void paintComponent(Graphics g) { // Corrected method
+    public void paintComponent(Graphics g) {
         super.paintComponent(g);
         Graphics2D  g2 = (Graphics2D) g.create();
         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -55,13 +49,9 @@ public class Background extends JPanel {
         g2.setColor(new Color(157,153, 255));
         g2.fill(createShape(height, 70 ,20, 60, 20, 70));
         int bgHeight = (int) (getHeight() * (1f - easeInOutCirc(animate)));
-        bgHeight += header;
         g2.setColor(new Color(245,245,245));
         g2.fillRect(0, bgHeight, getWidth(), getHeight());
         g2.dispose();
-         // Add custom painting code here
-        
-        // Do not call g2.dispose() here as it would release the graphics context prematurely
     }
     
     private Shape createShape(int location, int startInit, int ...points) {

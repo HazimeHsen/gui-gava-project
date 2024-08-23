@@ -1,28 +1,10 @@
 package java_project;
 
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Font;
-import java.awt.GridLayout;
-import java.awt.Image;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import javax.swing.*;
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import javax.swing.BorderFactory;
-import javax.swing.Box;
-import javax.swing.BoxLayout;
-import javax.swing.ImageIcon;
-import javax.swing.JButton;
-import javax.swing.JFrame;
-import javax.swing.JLabel;
-import javax.swing.JOptionPane;
-import javax.swing.JPanel;
-import javax.swing.JScrollPane;
-import javax.swing.JTextField;
-import javax.swing.SwingUtilities;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -30,33 +12,32 @@ import org.json.simple.parser.JSONParser;
 import java_project.models.ClassMember;
 import java_project.models.ClassRoom;
 import java_project.models.User;
+import raven.crazypanel.CrazyPanel;
+import java.awt.geom.RoundRectangle2D;
 
-public class HomePage extends JFrame {
+public class HomePage extends CrazyPanel {
     private User user;
 
     public HomePage(User user) {
         this.user = user;
 
-        setTitle("Home Page - Welcome " + user.getName());
-        setSize(800, 600); 
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLocationRelativeTo(null);
-
         setLayout(new BorderLayout());
-        
-        // Create Class Button
+
         JPanel buttonPanel = new JPanel();
-        JButton createClassButton = new JButton("Create Class");
+        JButton createClassButton = new components.Button();
+
+        createClassButton.setBackground(new java.awt.Color(157, 153, 255));
+        createClassButton.setForeground(new java.awt.Color(255, 255, 255));
+        createClassButton.setText("Create Class");
         createClassButton.setPreferredSize(new Dimension(150, 30));
+        // createClassButton.setEffectColor(new java.awt.Color(199, 196, 255));
         createClassButton.addActionListener(e -> openCreateClassDialog());
         buttonPanel.add(createClassButton);
         add(buttonPanel, BorderLayout.NORTH);
 
-        // Panel to display classes
         JPanel classesPanel = new JPanel();
-        classesPanel.setLayout(new GridLayout(0, 3, 10, 10)); 
-        JScrollPane scrollPane = new JScrollPane(classesPanel); 
-        scrollPane.setPreferredSize(new Dimension(800, 400)); 
+        JScrollPane scrollPane = new JScrollPane(classesPanel);
+        scrollPane.setPreferredSize(new Dimension(800, 400));
         add(scrollPane, BorderLayout.CENTER);
 
         loadUserClasses(classesPanel);
@@ -99,8 +80,8 @@ public class HomePage extends JFrame {
             String response = Utility.executePost(url, jsonParam.toString());
 
             if (response != null && !response.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Class created successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
-                loadUserClasses((JPanel) ((JScrollPane) getContentPane().getComponent(1)).getViewport().getView());
+                JOptionPane.showMessageDialog(this, "Class created successfully!", "Success",
+                        JOptionPane.INFORMATION_MESSAGE);
             } else {
                 JOptionPane.showMessageDialog(this, "Failed to create class. No response from server.", "Error", JOptionPane.ERROR_MESSAGE);
             }
@@ -153,27 +134,24 @@ public class HomePage extends JFrame {
     }
 
     private JPanel createClassCard(ClassRoom classRoom) {
-        JPanel cardPanel = new JPanel();
+        JPanel cardPanel = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setColor(Color.WHITE);
+                g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 20, 20);
+            }
+        };
+
         cardPanel.setLayout(new BoxLayout(cardPanel, BoxLayout.Y_AXIS));
-        cardPanel.setBorder(BorderFactory.createLineBorder(Color.BLACK, 1));
-        cardPanel.setPreferredSize(new Dimension(250, 150));
-        cardPanel.setMinimumSize(new Dimension(250, 150));
+        cardPanel.setPreferredSize(new Dimension(300, 250));
+        cardPanel.setOpaque(false);
 
-        // Label for the class name
-        JLabel nameLabel = new JLabel("Class Name: " + classRoom.getName());
-        nameLabel.setFont(new Font("Arial", Font.BOLD, 14));
-        
-        // Label for the description
-        JLabel descriptionLabel = new JLabel("Description: " + classRoom.getDescription());
+        cardPanel.setBackground(Color.WHITE);
 
-        // Adding the labels to the card
-        cardPanel.add(nameLabel);
-        cardPanel.add(descriptionLabel);
-
-        // Randomly select an image and add it to the card
         String[] imagePaths = {
-            "C:\\Users\\USER\\Documents\\images\\admin.png",
-            // Add more image paths as needed
+                "src/java_project/cover.png",
         };
 
         Random rand = new Random();
@@ -181,28 +159,49 @@ public class HomePage extends JFrame {
 
         ImageIcon icon = new ImageIcon(selectedImagePath);
         Image img = icon.getImage();
-        Image scaledImg = img.getScaledInstance(200, 150, Image.SCALE_SMOOTH); // Adjust size as needed
-        JLabel imageLabel = new JLabel(new ImageIcon(scaledImg));
-        
-        cardPanel.add(imageLabel);
+        Image scaledImg = img.getScaledInstance(300, 100, Image.SCALE_SMOOTH);
 
-        // Adding a mouse listener to the card for navigation
-        cardPanel.addMouseListener(new MouseAdapter() {
+        JLabel imageLabel = new JLabel(new ImageIcon(scaledImg)) {
             @Override
-            public void mouseClicked(MouseEvent e) {
-                SwingUtilities.invokeLater(() -> {
-                    dispose();
-                    new ClassDetails(classRoom, user).setVisible(true);
-                });
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setClip(new RoundRectangle2D.Double(0, 0, getWidth(), getHeight(), 20, 20));
+                super.paintComponent(g2d);
             }
-        });
+        };
+
+        imageLabel.setPreferredSize(new Dimension(300, 100));
+        imageLabel.setAlignmentX(JLabel.CENTER_ALIGNMENT); // Center align the image
+
+        Component verticalStrut = Box.createVerticalStrut(20);
+
+        JLabel nameLabel = new JLabel(classRoom.getName());
+        nameLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        nameLabel.setAlignmentX(JLabel.WIDTH); // Align left
+
+        JLabel descriptionLabel = new JLabel(classRoom.getDescription());
+        descriptionLabel.setAlignmentX(JLabel.WIDTH); // Align left
+
+        // Set preferred size for the text labels if necessary
+        nameLabel.setPreferredSize(new Dimension(280, 20));
+        descriptionLabel.setPreferredSize(new Dimension(280, 20));
+
+        cardPanel.add(imageLabel);
+        cardPanel.add(verticalStrut);
+        cardPanel.add(nameLabel);
+        cardPanel.add(descriptionLabel);
 
         return cardPanel;
     }
 
+
     public static void main(String[] args) {
         User user = new User("1", "John Doe", "john.doe@example.com");
-        SwingUtilities.invokeLater(() -> new HomePage(user).setVisible(true));
+        JFrame frame = new JFrame("Home Page");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.add(new HomePage(user));
+        frame.pack();
+        frame.setLocationRelativeTo(null);
+        frame.setVisible(true);
     }
 }
- 
