@@ -8,6 +8,8 @@ import org.jdesktop.animation.timing.TimingTargetAdapter;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import java_project.models.User;
+import javax.swing.SwingWorker;
+
 
 public class log_user extends javax.swing.JFrame {
     private Animator animatorLogin;
@@ -147,8 +149,8 @@ public class log_user extends javax.swing.JFrame {
                 action = false;
             }
             if (action) {
-                enableLogin(false);
-                cmdSignIn.setText("Loading...");
+//                enableLogin(false);
+//                cmdSignIn.setText("Loading...");
 
                 new SwingWorker<Void, Void>() {
                     @Override
@@ -161,6 +163,7 @@ public class log_user extends javax.swing.JFrame {
                     protected void done() {
                         cmdSignIn.setText("Sign In");
                         enableLogin(true);
+                       
                     }
                 }.execute();
             }

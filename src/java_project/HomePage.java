@@ -12,10 +12,10 @@ import org.json.simple.parser.JSONParser;
 import java_project.models.ClassMember;
 import java_project.models.ClassRoom;
 import java_project.models.User;
-import raven.crazypanel.CrazyPanel;
+//import raven.crazypanel.CrazyPanel;
 import java.awt.geom.RoundRectangle2D;
 
-public class HomePage extends CrazyPanel {
+public class HomePage extends JPanel {
     private User user;
 
     public HomePage(User user) {
