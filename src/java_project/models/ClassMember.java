@@ -4,11 +4,15 @@ public class ClassMember {
     private String userId;
     private String role;
     private String classId;
+    private String userName;
+    private String userEmail;
 
-    public ClassMember(String userId, String role, String classId) {
+    public ClassMember(String userId, String role, String classId, String userName, String userEmail) {
         this.userId = userId;
-        this.classId = classId;
         this.role = role;
+        this.classId = classId;
+        this.userName = userName;
+        this.userEmail = userEmail;
     }
 
     public String getUserId() {
@@ -21,5 +25,13 @@ public class ClassMember {
 
     public String getClassId() {
         return classId;
+    }
+
+    public String getUserName() {
+        return userName;
+    }
+
+    public String getUserEmail() {
+        return userEmail;
     }
 }

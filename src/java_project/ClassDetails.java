@@ -53,11 +53,13 @@ public class ClassDetails extends JPanel {
 
         JMenuBar menuBar = new JMenuBar();
 
-        if (isAdmin) {
+        if (isAdmin || isModerator) {
             JButton addMembersButton = new JButton("Add Members");
             addMembersButton.addActionListener(e -> openAddMembersDialog());
             menuBar.add(addMembersButton);
+        }
 
+        if (isAdmin) {
             JMenu uploadMenu = new JMenu("Upload Files");
 
             JMenuItem assignmentItem = new JMenuItem("Assignment (PDF/DOCX)");
@@ -75,6 +77,10 @@ public class ClassDetails extends JPanel {
             uploadMenu.add(imageItem);
 
             menuBar.add(uploadMenu);
+
+            JButton manageUsersButton = new JButton("Manage Users");
+            manageUsersButton.addActionListener(e -> openManageUsersDialog());
+            menuBar.add(manageUsersButton);
         }
 
         topPanel.add(menuBar, BorderLayout.CENTER);
@@ -471,5 +477,79 @@ public class ClassDetails extends JPanel {
                 connection.disconnect();
             }
         }
+    }
+
+    private void openManageUsersDialog() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.add(new JLabel("Manage Users:"));
+
+        List<JComboBox<String>> roleSelectors = new ArrayList<>();
+        List<String> userIds = new ArrayList<>();
+        String currentUserId = user.getId(); // Get the current user's ID
+
+        for (ClassMember member : classRoom.getMembers()) {
+            String userId = member.getUserId();
+
+            if (userId.equals(currentUserId)) {
+                continue;
+            }
+
+            JPanel userPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+
+            String userName = member.getUserName();
+            String userRole = member.getRole();
+
+            JLabel userLabel = new JLabel(userName);
+            userPanel.add(userLabel);
+
+            JComboBox<String> roleSelector = new JComboBox<>(new String[] { "NORMAL", "MODERATOR" });
+            roleSelector.setSelectedItem(userRole);
+            roleSelectors.add(roleSelector);
+            userIds.add(userId);
+
+            userPanel.add(roleSelector);
+            panel.add(userPanel);
+        }
+
+        JButton updateButton = new JButton("Update");
+        updateButton.addActionListener(e -> updateUserRoles(userIds, roleSelectors));
+        panel.add(updateButton);
+
+        JOptionPane.showMessageDialog(this, panel, "Manage Users", JOptionPane.PLAIN_MESSAGE);
+    }
+
+    private void updateUserRoles(List<String> userIds, List<JComboBox<String>> roleSelectors) {
+        for (int i = 0; i < userIds.size(); i++) {
+            String userId = userIds.get(i);
+            String selectedRole = (String) roleSelectors.get(i).getSelectedItem();
+
+            updateUserRole(userId, selectedRole);
+        }
+    }
+
+    private void updateUserRole(String userId, String role) {
+        String url = "http://localhost:5000/api/classrooms/" + classRoom.getId() + "/update-member-role";
+
+        JSONObject jsonParam = new JSONObject();
+        jsonParam.put("userId", userId);
+        jsonParam.put("role", role);
+        System.out.println(jsonParam);
+        new Thread(() -> {
+            try {
+                String response = Utility.executePut(url, jsonParam.toString());
+                System.out.println(response.toString());
+                if (response != null && !response.isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "User roles updated successfully!", "Success",
+                            JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(this, "Failed to update user roles. No response from server.",
+                            "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "An error occurred: " + e.getMessage(), "Error",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        }).start();
     }
 }

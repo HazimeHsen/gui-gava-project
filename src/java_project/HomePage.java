@@ -134,7 +134,11 @@ public class HomePage extends CrazyPanel {
                         JSONObject memberJson = (JSONObject) memberObj;
                         String userId = String.valueOf(memberJson.get("userId"));
                         String role = (String) memberJson.get("role");
-                        members.add(new ClassMember(userId, role, classId));
+                        JSONObject userJson = (JSONObject) memberJson.get("user");
+                        String userName = (String) userJson.get("name");
+                        String userEmail = (String) userJson.get("email");
+
+                        members.add(new ClassMember(userId, role, classId, userName, userEmail));
                     }
 
                     ClassRoom classRoom = new ClassRoom(classId, className, classDescription, members);
