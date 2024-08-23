@@ -12,7 +12,6 @@ import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
-import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -23,12 +22,13 @@ import org.json.simple.parser.JSONParser;
 import java_project.models.ClassRoom;
 import java_project.models.ClassMember;
 import java_project.models.User;
+import components.Button;
+import components.TextField;
 
-public class ClassDetails extends JFrame {
+public class ClassDetails extends JPanel {
     private ClassRoom classRoom;
     private User user;
     private boolean isAdmin;
-    @SuppressWarnings("unused")
     private boolean isModerator;
     private List<JCheckBox> userCheckboxes = new ArrayList<>();
 
@@ -36,12 +36,8 @@ public class ClassDetails extends JFrame {
         this.classRoom = classRoom;
         this.user = user;
 
-        setTitle("Class Details - " + classRoom.getName());
-        setSize(600, 400);
-        setLocationRelativeTo(null);
-        setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
-
         setLayout(new BorderLayout());
+        setPreferredSize(new Dimension(600, 400));
 
         JPanel detailsPanel = new JPanel();
         detailsPanel.setLayout(new BoxLayout(detailsPanel, BoxLayout.Y_AXIS));
@@ -59,9 +55,10 @@ public class ClassDetails extends JFrame {
 
         add(detailsPanel, BorderLayout.CENTER);
 
-        JButton backButton = new JButton("Back");
+        Button backButton = new Button();
+        backButton.setText("Back");
         backButton.addActionListener(e -> {
-            dispose();
+            SwingUtilities.getWindowAncestor(this).dispose();
             SwingUtilities.invokeLater(() -> new HomePage(user).setVisible(true));
         });
 
@@ -70,7 +67,8 @@ public class ClassDetails extends JFrame {
         checkUserRole();
 
         if (isAdmin) {
-            JButton addMembersButton = new JButton("Add Members");
+            Button addMembersButton = new Button();
+            addMembersButton.setText("Add Members");
             addMembersButton.addActionListener(new ActionListener() {
                 @Override
                 public void actionPerformed(ActionEvent e) {
@@ -126,7 +124,8 @@ public class ClassDetails extends JFrame {
                 panel.add(userCheckBox);
             }
 
-            JButton addButton = new JButton("Add Selected Members");
+            Button addButton = new Button();
+            addButton.setText("Add Selected Members");
             addButton.addActionListener(e -> {
                 addSelectedMembers();
             });
@@ -159,7 +158,6 @@ public class ClassDetails extends JFrame {
         for (String userId : selectedUserIds) {
             addMemberToClass(userId);
         }
-
     }
 
     @SuppressWarnings("unchecked")

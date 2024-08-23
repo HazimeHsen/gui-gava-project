@@ -12,10 +12,10 @@ import org.json.simple.parser.JSONParser;
 import java_project.models.ClassMember;
 import java_project.models.ClassRoom;
 import java_project.models.User;
-//import raven.crazypanel.CrazyPanel;
+import raven.crazypanel.CrazyPanel;
 import java.awt.geom.RoundRectangle2D;
 
-public class HomePage extends JPanel {
+public class HomePage extends CrazyPanel {
     private User user;
 
     public HomePage(User user) {
@@ -147,7 +147,6 @@ public class HomePage extends JPanel {
         cardPanel.setLayout(new BoxLayout(cardPanel, BoxLayout.Y_AXIS));
         cardPanel.setPreferredSize(new Dimension(300, 250));
         cardPanel.setOpaque(false);
-
         cardPanel.setBackground(Color.WHITE);
 
         String[] imagePaths = {
@@ -182,7 +181,6 @@ public class HomePage extends JPanel {
         JLabel descriptionLabel = new JLabel(classRoom.getDescription());
         descriptionLabel.setAlignmentX(JLabel.WIDTH); // Align left
 
-        // Set preferred size for the text labels if necessary
         nameLabel.setPreferredSize(new Dimension(280, 20));
         descriptionLabel.setPreferredSize(new Dimension(280, 20));
 
@@ -191,9 +189,26 @@ public class HomePage extends JPanel {
         cardPanel.add(nameLabel);
         cardPanel.add(descriptionLabel);
 
+        // Add ActionListener to open ClassDetails when cardPanel is clicked
+        cardPanel.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                openClassDetails(classRoom);
+            }
+        });
+
         return cardPanel;
     }
 
+    private void openClassDetails(ClassRoom classRoom) {
+        SwingUtilities.invokeLater(() -> {
+            removeAll(); // Remove all components from HomePage
+            setLayout(new BorderLayout());
+            add(new ClassDetails(classRoom, user), BorderLayout.CENTER); // Add ClassDetails panel
+            revalidate();
+            repaint();
+        });
+    }
 
     public static void main(String[] args) {
         User user = new User("1", "John Doe", "john.doe@example.com");
