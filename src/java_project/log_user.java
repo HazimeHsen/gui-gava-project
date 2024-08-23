@@ -229,6 +229,7 @@ public class log_user extends javax.swing.JFrame {
                 txtUser.setVisible(false);
                 txtPass.setVisible(false);
                 cmdSignIn.setVisible(false);
+               
             }
 
             @Override

@@ -17,7 +17,9 @@ import java.awt.geom.RoundRectangle2D;
 
 public class HomePage extends CrazyPanel {
     private User user;
-
+    private float opacity = 0.0f; // Starting opacity
+    
+    
     public HomePage(User user) {
         this.user = user;
 
@@ -41,7 +43,25 @@ public class HomePage extends CrazyPanel {
         add(scrollPane, BorderLayout.CENTER);
 
         loadUserClasses(classesPanel);
+           // Start fade-in animation
+        Timer timer = new Timer(10, e -> {
+            opacity += 0.05f; // Increase opacity
+            if (opacity > 1.0f) {
+                opacity = 1.0f; // Cap opacity at 1.0
+                ((Timer) e.getSource()).stop(); // Stop the timer
+            }
+            repaint();
+        });
+        timer.start();
     }
+    
+    @Override
+    protected void paintComponent(Graphics g) {
+        Graphics2D g2d = (Graphics2D) g;
+        super.paintComponent(g2d);
+        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, opacity));
+    }
+
 
     private void openCreateClassDialog() {
         JTextField nameField = new JTextField(10);
