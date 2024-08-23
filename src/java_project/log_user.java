@@ -25,7 +25,7 @@ public class log_user extends javax.swing.JFrame {
     private void initComponents() {
         this.setDefaultCloseOperation(javax.swing.JFrame.EXIT_ON_CLOSE);
         this.setSize(800, 600);
-        this.setTitle("Login Page");
+        this.setTitle("ClassRoom");
         this.setLocationRelativeTo(null);
         this.setLayout(null);
 
