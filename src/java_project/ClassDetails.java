@@ -39,6 +39,8 @@ public class ClassDetails extends JPanel {
         setLayout(new BorderLayout());
         setPreferredSize(new Dimension(600, 400));
 
+        checkUserRole();
+
         JPanel topPanel = new JPanel(new BorderLayout());
 
         ImageIcon backIcon = new ImageIcon(getClass().getResource("/java_project/back-icon.png"));
@@ -48,22 +50,48 @@ public class ClassDetails extends JPanel {
         backButton.addActionListener(e -> navigateToHomePage());
 
         topPanel.add(backButton, BorderLayout.WEST);
+
+        JMenuBar menuBar = new JMenuBar();
+
+        if (isAdmin) {
+            JButton addMembersButton = new JButton("Add Members");
+            addMembersButton.addActionListener(e -> openAddMembersDialog());
+            menuBar.add(addMembersButton);
+
+            JMenu uploadMenu = new JMenu("Upload Files");
+
+            JMenuItem assignmentItem = new JMenuItem("Assignment (PDF/DOCX)");
+            assignmentItem.addActionListener(e -> {
+                selectedFileType = "assignment";
+                openFileChooser(new String[] { "pdf", "docx" });
+            });
+            uploadMenu.add(assignmentItem);
+
+            JMenuItem imageItem = new JMenuItem("Image");
+            imageItem.addActionListener(e -> {
+                selectedFileType = "image";
+                openFileChooser(new String[] { "jpg", "jpeg", "png", "gif" });
+            });
+            uploadMenu.add(imageItem);
+
+            menuBar.add(uploadMenu);
+        }
+
+        topPanel.add(menuBar, BorderLayout.CENTER);
         add(topPanel, BorderLayout.NORTH);
 
         JPanel detailsPanel = new JPanel();
         detailsPanel.setLayout(new BoxLayout(detailsPanel, BoxLayout.Y_AXIS));
         detailsPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        JLabel nameLabel = new JLabel("Class Name: " + classRoom.getName());
+        JLabel nameLabel = new JLabel(classRoom.getName());
         nameLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        JLabel descriptionLabel = new JLabel("Description: " + classRoom.getDescription());
+        JLabel descriptionLabel = new JLabel(classRoom.getDescription());
         descriptionLabel.setFont(new Font("Arial", Font.PLAIN, 14));
 
         detailsPanel.add(nameLabel);
         detailsPanel.add(descriptionLabel);
-        loadAdditionalClassDetails(detailsPanel);
 
-        // Panel to display files at the bottom
         filesPanel = new JPanel();
         filesPanel.setLayout(new BoxLayout(filesPanel, BoxLayout.Y_AXIS));
         loadingLabel = new JLabel("Loading files...");
@@ -72,47 +100,17 @@ public class ClassDetails extends JPanel {
         detailsPanel.add(Box.createRigidArea(new Dimension(0, 20)));
         detailsPanel.add(filesPanel);
 
-        // Wrap detailsPanel in a JScrollPane
         scrollPane = new JScrollPane(detailsPanel);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
         add(scrollPane, BorderLayout.CENTER);
 
-        checkUserRole();
-
-        // Automatically fetch and display files when the panel is loaded
         fetchAndDisplayFiles();
-
-        if (isAdmin) {
-            JButton addMembersButton = new JButton("Add Members");
-            addMembersButton.addActionListener(e -> openAddMembersDialog());
-            detailsPanel.add(Box.createRigidArea(new Dimension(0, 20)));
-            detailsPanel.add(addMembersButton);
-
-            detailsPanel.add(Box.createRigidArea(new Dimension(0, 20)));
-            JLabel fileTypeLabel = new JLabel("Select File Type:");
-            detailsPanel.add(fileTypeLabel);
-
-            JButton assignmentButton = new JButton("Assignment (PDF/DOCX)");
-            assignmentButton.addActionListener(e -> {
-                selectedFileType = "assignment";
-                openFileChooser(new String[] { "pdf", "docx" });
-            });
-            detailsPanel.add(assignmentButton);
-
-            JButton imageButton = new JButton("Image");
-            imageButton.addActionListener(e -> {
-                selectedFileType = "image";
-                openFileChooser(new String[] { "jpg", "jpeg", "png", "gif" });
-            });
-            detailsPanel.add(imageButton);
-        }
     }
 
     private void fetchAndDisplayFiles() {
         String url = "http://localhost:5000/api/classrooms/" + classRoom.getId() + "/files";
         SwingUtilities.invokeLater(() -> {
-            // Clear previous files and show the loading label
             filesPanel.removeAll();
             filesPanel.add(loadingLabel);
             revalidate();
@@ -126,7 +124,6 @@ public class ClassDetails extends JPanel {
                 JSONArray filesArray = (JSONArray) parser.parse(response);
 
                 SwingUtilities.invokeLater(() -> {
-                    // Clear the loading label and display new files
                     filesPanel.remove(loadingLabel);
                     if (filesArray.isEmpty()) {
                         filesPanel.add(new JLabel("No files found for this class."));
@@ -148,46 +145,133 @@ public class ClassDetails extends JPanel {
     }
 
     private void displayFiles(JSONArray filesArray) {
-        filesPanel.add(new JLabel("Files in this class:"));
+        filesPanel.removeAll(); // Clear previous content
 
         for (Object obj : filesArray) {
             JSONObject fileObj = (JSONObject) obj;
             String fileName = (String) fileObj.get("fileName");
             String fileType = (String) fileObj.get("fileType");
-            String filePath = (String) fileObj.get("filePath"); // Assuming the server provides this
+            String filePath = (String) fileObj.get("filePath");
             String uploadedBy = ((JSONObject) fileObj.get("user")).get("name").toString();
+            JSONArray commentsArray = (JSONArray) fileObj.get("comments");
+            System.out.println(fileObj.toJSONString());
+            JPanel filePanel = new JPanel();
+            filePanel.setLayout(new BoxLayout(filePanel, BoxLayout.Y_AXIS));
 
-            JLabel fileLabel = new JLabel("File: " + fileName + " (Uploaded by: " + uploadedBy + ")");
-            filesPanel.add(fileLabel);
+            JLabel fileLabel = new JLabel("Uploaded by: " + uploadedBy + " - " + fileName);
+            filePanel.add(fileLabel);
 
             if (fileType.equals("assignment")) {
-                JButton pdfButton = new JButton("Open PDF");
-                pdfButton.addActionListener(new ActionListener() {
-                    @Override
-                    public void actionPerformed(ActionEvent e) {
-                        openFile(filePath);
-                    }
-                });
-                filesPanel.add(pdfButton);
+                JButton fileButton = new JButton(fileName);
+                fileButton.addActionListener(e -> openFile(filePath));
+                filePanel.add(fileButton);
             } else if (fileType.startsWith("image")) {
                 try {
                     URL imageUrl = new URL(filePath);
                     ImageIcon imageIcon = new ImageIcon(imageUrl);
-
-                    // Scale the image
                     Image img = imageIcon.getImage();
-                    Image scaledImg = img.getScaledInstance(400, -1, Image.SCALE_SMOOTH); // Maintain aspect ratio
+                    Image scaledImg = img.getScaledInstance(400, -1, Image.SCALE_SMOOTH);
                     imageIcon = new ImageIcon(scaledImg);
 
                     JLabel imageLabel = new JLabel(imageIcon);
-                    filesPanel.add(imageLabel);
+                    filePanel.add(imageLabel);
                 } catch (Exception e) {
-                    filesPanel.add(new JLabel("Error loading image: " + e.getMessage()));
+                    filePanel.add(new JLabel("Error loading image: " + e.getMessage()));
                 }
             }
+
+            // Display existing comments
+
+            // Button to open comments dialog
+            JButton viewCommentsButton = new JButton("View Comments");
+            viewCommentsButton.addActionListener(e -> openCommentsDialog(fileObj));
+            filePanel.add(viewCommentsButton);
+
+            filesPanel.add(filePanel);
         }
+
+        // Refresh the panel to display new content
+        SwingUtilities.invokeLater(() -> {
+            filesPanel.revalidate();
+            filesPanel.repaint();
+        });
     }
 
+    private void openCommentsDialog(JSONObject fileObj) {
+        JDialog commentDialog = new JDialog((Frame) null, "Comments", true);
+        commentDialog.setLayout(new BorderLayout());
+
+        // Create panel for comments
+        JPanel commentsPanel = new JPanel();
+        commentsPanel.setLayout(new BoxLayout(commentsPanel, BoxLayout.Y_AXIS));
+
+        // Load existing comments
+        JSONArray commentsArray = (JSONArray) fileObj.get("comments");
+        if (commentsArray != null) {
+            for (Object commentObj : commentsArray) {
+                System.out.println(commentObj);
+                JSONObject comment = (JSONObject) commentObj;
+                String commentText = (String) comment.get("content");
+                String commentUser = ((JSONObject) comment.get("author")).get("name").toString();
+                JLabel commentLabel = new JLabel(commentUser + ": " + commentText);
+                commentsPanel.add(commentLabel);
+            }
+        }
+
+        // Create input field and button for adding a new comment
+        JTextField commentField = new JTextField(30);
+        JButton addCommentButton = new JButton("Add Comment");
+        addCommentButton.addActionListener(e -> {
+            String commentText = commentField.getText();
+            if (!commentText.isEmpty()) {
+                addComment(fileObj, commentText);
+                commentDialog.dispose(); // Close the dialog
+            } else {
+                JOptionPane.showMessageDialog(commentDialog, "Comment cannot be empty.", "Error",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        JPanel inputPanel = new JPanel();
+        inputPanel.add(commentField);
+        inputPanel.add(addCommentButton);
+
+        commentDialog.add(new JScrollPane(commentsPanel), BorderLayout.CENTER);
+        commentDialog.add(inputPanel, BorderLayout.SOUTH);
+
+        commentDialog.pack();
+        commentDialog.setLocationRelativeTo(null);
+        commentDialog.setVisible(true);
+    }
+
+    private void addComment(JSONObject fileObj, String commentText) {
+        String fileId = ((Number) fileObj.get("id")).toString(); // Convert Long to String
+        String url = "http://localhost:5000/api/classrooms/" + classRoom.getId() + "/files/" + fileId + "/comments";
+
+        JSONObject jsonParam = new JSONObject();
+        jsonParam.put("authorId", user.getId());
+        jsonParam.put("content", commentText);
+
+        new Thread(() -> {
+            try {
+                String response = Utility.executePost(url, jsonParam.toString());
+                if (response != null && !response.isEmpty()) {
+                    System.out.println(response);
+                    JOptionPane.showMessageDialog(this, "Comment added successfully!", "Success",
+                            JOptionPane.INFORMATION_MESSAGE);
+                    fetchAndDisplayFiles(); // Refresh the file list to show the new comment
+                } else {
+                    JOptionPane.showMessageDialog(this, "Failed to add comment. No response from server.", "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "An error occurred: " + e.getMessage(), "Error",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        }).start();
+    }
+
+    @SuppressWarnings("deprecation")
     private void openFile(String filePath) {
         try {
             Desktop.getDesktop().browse(new URL(filePath).toURI());
@@ -216,11 +300,6 @@ public class ClassDetails extends JPanel {
                 }
             }
         }
-    }
-
-    private void loadAdditionalClassDetails(JPanel detailsPanel) {
-        JLabel additionalInfoLabel = new JLabel("Additional class details will be displayed here...");
-        detailsPanel.add(additionalInfoLabel);
     }
 
     private void openAddMembersDialog() {
@@ -314,11 +393,12 @@ public class ClassDetails extends JPanel {
         }
     }
 
+    @SuppressWarnings("deprecation")
     private String uploadToApi(File file) {
-        String url = "http://localhost:5000/api/classrooms/upload"; // Change this to your upload API endpoint
+        String url = "http://localhost:5000/api/classrooms/upload";
         String charset = "UTF-8";
-        String boundary = Long.toHexString(System.currentTimeMillis()); // Generate a unique boundary
-        String CRLF = "\r\n"; // Line separator
+        String boundary = Long.toHexString(System.currentTimeMillis());
+        String CRLF = "\r\n";
 
         HttpURLConnection connection = null;
         try {
@@ -328,25 +408,27 @@ public class ClassDetails extends JPanel {
 
             try (OutputStream output = connection.getOutputStream();
                     PrintWriter writer = new PrintWriter(new OutputStreamWriter(output, charset), true)) {
-                // Send userId
+
                 writer.append("--" + boundary).append(CRLF);
                 writer.append("Content-Disposition: form-data; name=\"userId\"").append(CRLF);
-                writer.append(CRLF).append(user.getId()).append(CRLF); // Send userId
+                writer.append(CRLF).append(user.getId()).append(CRLF);
                 writer.flush();
 
-                // Send classId
                 writer.append("--" + boundary).append(CRLF);
                 writer.append("Content-Disposition: form-data; name=\"classId\"").append(CRLF);
-                writer.append(CRLF).append(classRoom.getId()).append(CRLF); // Send classId
+                writer.append(CRLF).append(classRoom.getId()).append(CRLF);
                 writer.flush();
 
-                // Send file type
                 writer.append("--" + boundary).append(CRLF);
                 writer.append("Content-Disposition: form-data; name=\"fileType\"").append(CRLF);
-                writer.append(CRLF).append(selectedFileType).append(CRLF); // Send file type
+                writer.append(CRLF).append(selectedFileType).append(CRLF);
                 writer.flush();
 
-                // Send file
+                writer.append("--" + boundary).append(CRLF);
+                writer.append("Content-Disposition: form-data; name=\"fileName\"").append(CRLF);
+                writer.append(CRLF).append(file.getName()).append(CRLF);
+                writer.flush();
+
                 writer.append("--" + boundary).append(CRLF);
                 writer.append("Content-Disposition: form-data; name=\"file\"; filename=\"" + file.getName() + "\"")
                         .append(CRLF);
@@ -354,7 +436,6 @@ public class ClassDetails extends JPanel {
                 writer.append(CRLF);
                 writer.flush();
 
-                // Read file
                 try (FileInputStream inputStream = new FileInputStream(file)) {
                     byte[] buffer = new byte[1024];
                     int bytesRead;
@@ -367,7 +448,6 @@ public class ClassDetails extends JPanel {
                 writer.flush();
             }
 
-            // Get response
             int responseCode = connection.getResponseCode();
             StringBuilder response = new StringBuilder();
             if (responseCode == HttpURLConnection.HTTP_CREATED) {
@@ -377,7 +457,7 @@ public class ClassDetails extends JPanel {
                         response.append(line);
                     }
                 }
-                fetchAndDisplayFiles(); // Refresh files after upload
+                fetchAndDisplayFiles();
 
             } else {
                 response.append("Upload failed: ").append(responseCode);
