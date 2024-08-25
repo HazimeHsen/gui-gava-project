@@ -8,6 +8,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
 import javax.swing.*;
@@ -31,6 +32,7 @@ public class ClassDetails extends JPanel {
     private JPanel filesPanel;
     private JLabel loadingLabel;
     private JScrollPane scrollPane;
+    private File selectedFile;
 
     public ClassDetails(ClassRoom classRoom, User user) {
         this.classRoom = classRoom;
@@ -65,9 +67,16 @@ public class ClassDetails extends JPanel {
             JMenuItem assignmentItem = new JMenuItem("Assignment (PDF/DOCX)");
             assignmentItem.addActionListener(e -> {
                 selectedFileType = "assignment";
-                openFileChooser(new String[] { "pdf", "docx" });
+                openAssignmentDialog();
             });
             uploadMenu.add(assignmentItem);
+
+            JMenuItem fileItem = new JMenuItem("file");
+            fileItem.addActionListener(e -> {
+                selectedFileType = "file";
+                openFileChooser(new String[] { "pdf", "docx" });
+            });
+            uploadMenu.add(fileItem);
 
             JMenuItem imageItem = new JMenuItem("Image");
             imageItem.addActionListener(e -> {
@@ -83,6 +92,9 @@ public class ClassDetails extends JPanel {
             menuBar.add(manageUsersButton);
         }
 
+        JButton assignmentsButton = new JButton("Assignments");
+        assignmentsButton.addActionListener(e -> navigateToAssignmentsPanel());
+        menuBar.add(assignmentsButton);
         topPanel.add(menuBar, BorderLayout.CENTER);
         add(topPanel, BorderLayout.NORTH);
 
@@ -112,6 +124,13 @@ public class ClassDetails extends JPanel {
         add(scrollPane, BorderLayout.CENTER);
 
         fetchAndDisplayFiles();
+    }
+
+    private void navigateToAssignmentsPanel() {
+        removeAll();
+        add(new AssignmentsPanel(classRoom, user));
+        revalidate();
+        repaint();
     }
 
     private void fetchAndDisplayFiles() {
@@ -164,10 +183,10 @@ public class ClassDetails extends JPanel {
             JPanel filePanel = new JPanel();
             filePanel.setLayout(new BoxLayout(filePanel, BoxLayout.Y_AXIS));
 
-            JLabel fileLabel = new JLabel("Uploaded by: " + uploadedBy + " - " + fileName);
+            JLabel fileLabel = new JLabel(uploadedBy);
             filePanel.add(fileLabel);
 
-            if (fileType.equals("assignment")) {
+            if (fileType.equals("assignment") || fileType.equals("file")) {
                 JButton fileButton = new JButton(fileName);
                 fileButton.addActionListener(e -> openFile(filePath));
                 filePanel.add(fileButton);
@@ -387,20 +406,24 @@ public class ClassDetails extends JPanel {
         }
     }
 
-    private void openFileChooser(String[] fileTypes) {
+    private void openFileChooser(String[] extensions) {
         JFileChooser fileChooser = new JFileChooser();
-        FileNameExtensionFilter filter = new FileNameExtensionFilter("Files", fileTypes);
+        FileNameExtensionFilter filter = new FileNameExtensionFilter("Files", extensions);
         fileChooser.setFileFilter(filter);
-        int returnValue = fileChooser.showOpenDialog(this);
+
+        int returnValue = fileChooser.showOpenDialog(null);
         if (returnValue == JFileChooser.APPROVE_OPTION) {
-            File selectedFile = fileChooser.getSelectedFile();
-            String response = uploadToApi(selectedFile);
-            JOptionPane.showMessageDialog(this, response, "Upload Result", JOptionPane.INFORMATION_MESSAGE);
+            File file = fileChooser.getSelectedFile();
+            uploadFiles(file);
         }
     }
 
     @SuppressWarnings("deprecation")
-    private String uploadToApi(File file) {
+    private String uploadFiles(File file) {
+        SwingUtilities.invokeLater(() -> {
+            JOptionPane.showMessageDialog(null, "Uploading file...");
+        });
+
         String url = "http://localhost:5000/api/classrooms/upload";
         String charset = "UTF-8";
         String boundary = Long.toHexString(System.currentTimeMillis());
@@ -415,32 +438,29 @@ public class ClassDetails extends JPanel {
             try (OutputStream output = connection.getOutputStream();
                     PrintWriter writer = new PrintWriter(new OutputStreamWriter(output, charset), true)) {
 
+                // Adding form fields
                 writer.append("--" + boundary).append(CRLF);
                 writer.append("Content-Disposition: form-data; name=\"userId\"").append(CRLF);
-                writer.append(CRLF).append(user.getId()).append(CRLF);
-                writer.flush();
+                writer.append(CRLF).append(user.getId()).append(CRLF).flush();
 
                 writer.append("--" + boundary).append(CRLF);
                 writer.append("Content-Disposition: form-data; name=\"classId\"").append(CRLF);
-                writer.append(CRLF).append(classRoom.getId()).append(CRLF);
-                writer.flush();
+                writer.append(CRLF).append(classRoom.getId()).append(CRLF).flush();
 
                 writer.append("--" + boundary).append(CRLF);
                 writer.append("Content-Disposition: form-data; name=\"fileType\"").append(CRLF);
-                writer.append(CRLF).append(selectedFileType).append(CRLF);
-                writer.flush();
+                writer.append(CRLF).append(selectedFileType).append(CRLF).flush();
 
                 writer.append("--" + boundary).append(CRLF);
                 writer.append("Content-Disposition: form-data; name=\"fileName\"").append(CRLF);
-                writer.append(CRLF).append(file.getName()).append(CRLF);
-                writer.flush();
+                writer.append(CRLF).append(file.getName()).append(CRLF).flush();
 
+                // Adding file content
                 writer.append("--" + boundary).append(CRLF);
                 writer.append("Content-Disposition: form-data; name=\"file\"; filename=\"" + file.getName() + "\"")
                         .append(CRLF);
-                writer.append("Content-Type: " + URLConnection.guessContentTypeFromName(file.getName())).append(CRLF);
-                writer.append(CRLF);
-                writer.flush();
+                writer.append("Content-Type: " + URLConnection.guessContentTypeFromName(file.getName())).append(CRLF)
+                        .append(CRLF).flush();
 
                 try (FileInputStream inputStream = new FileInputStream(file)) {
                     byte[] buffer = new byte[1024];
@@ -450,25 +470,48 @@ public class ClassDetails extends JPanel {
                     }
                 }
                 output.flush();
-                writer.append(CRLF).append("--" + boundary + "--").append(CRLF);
-                writer.flush();
+                writer.append(CRLF).append("--" + boundary + "--").append(CRLF).flush();
             }
 
             int responseCode = connection.getResponseCode();
-            StringBuilder response = new StringBuilder();
             if (responseCode == HttpURLConnection.HTTP_CREATED) {
+                // Parsing response to get the file ID
                 try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+                    StringBuilder response = new StringBuilder();
                     String line;
                     while ((line = reader.readLine()) != null) {
                         response.append(line);
                     }
-                }
-                fetchAndDisplayFiles();
 
+                    // Assuming the server returns a JSON object with the file ID within the
+                    // 'fileUpload' object
+                    JSONParser parser = new JSONParser();
+                    System.out.println("Raw JSON Response: " + response.toString());
+                    JSONObject jsonResponse = (JSONObject) parser.parse(response.toString());
+                    System.out.println("Parsed JSON Object: " + jsonResponse);
+
+                    // Navigate into the 'fileUpload' object and retrieve the 'id'
+                    if (jsonResponse.containsKey("fileUpload")) {
+                        JSONObject fileUpload = (JSONObject) jsonResponse.get("fileUpload");
+                        if (fileUpload.containsKey("id")) {
+                            String fileId = fileUpload.get("id").toString();
+                            fetchAndDisplayFiles(); // Refresh the UI
+                            return fileId;
+                        } else {
+                            System.err.println("Error: The key 'id' does not exist in the 'fileUpload' object.");
+                            return null; // Or throw an exception if this is considered an error case
+                        }
+                    } else {
+                        System.err.println("Error: The key 'fileUpload' does not exist in the response.");
+                        return null; // Or throw an exception if this is considered an error case
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace(); // Print the stack trace for debugging
+                    return null;
+                }
             } else {
-                response.append("Upload failed: ").append(responseCode);
+                return "Upload failed: " + responseCode;
             }
-            return response.toString();
         } catch (Exception e) {
             e.printStackTrace();
             return "Error occurred while uploading file: " + e.getMessage();
@@ -477,6 +520,35 @@ public class ClassDetails extends JPanel {
                 connection.disconnect();
             }
         }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void saveAssignment(String title, String description, String fileId) {
+        String url = "http://localhost:5000/api/classrooms/" + classRoom.getId() + "/assignments";
+
+        JSONObject jsonParam = new JSONObject();
+        jsonParam.put("title", title);
+        jsonParam.put("description", description);
+        jsonParam.put("fileId", fileId);
+        jsonParam.put("createdBy", user.getId());
+        System.out.println(jsonParam);
+        new Thread(() -> {
+            try {
+                String response = Utility.executePost(url, jsonParam.toString());
+                if (response != null && !response.isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Assignment created successfully!", "Success",
+                            JOptionPane.INFORMATION_MESSAGE);
+                    fetchAndDisplayFiles(); // Refresh the UI to show the new assignment
+                } else {
+                    JOptionPane.showMessageDialog(this, "Failed to create assignment. No response from server.",
+                            "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "An error occurred: " + e.getMessage(), "Error",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        }).start();
     }
 
     private void openManageUsersDialog() {
@@ -552,4 +624,69 @@ public class ClassDetails extends JPanel {
             }
         }).start();
     }
+
+    private void openAssignmentDialog() {
+        JDialog assignmentDialog = new JDialog((Frame) null, "New Assignment", true);
+        assignmentDialog.setLayout(new BorderLayout());
+
+        JPanel panel = new JPanel();
+        panel.setLayout(new GridLayout(4, 2));
+
+        JLabel titleLabel = new JLabel("Title:");
+        JTextField titleField = new JTextField();
+        JLabel descriptionLabel = new JLabel("Description:");
+        JTextArea descriptionArea = new JTextArea();
+        descriptionArea.setRows(4);
+        JScrollPane descriptionScrollPane = new JScrollPane(descriptionArea);
+
+        // File chooser for selecting an assignment file
+        JLabel fileLabel = new JLabel("File:");
+        JButton fileButton = new JButton("Choose File");
+        JLabel selectedFileLabel = new JLabel("No file selected");
+
+        fileButton.addActionListener(e -> {
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setFileFilter(new FileNameExtensionFilter("PDF or DOCX", "pdf", "docx"));
+            int returnValue = fileChooser.showOpenDialog(null);
+            if (returnValue == JFileChooser.APPROVE_OPTION) {
+                selectedFile = fileChooser.getSelectedFile();
+                selectedFileLabel.setText(selectedFile.getName());
+            }
+        });
+
+        panel.add(titleLabel);
+        panel.add(titleField);
+        panel.add(descriptionLabel);
+        panel.add(descriptionScrollPane);
+        panel.add(fileLabel);
+        panel.add(fileButton);
+        panel.add(new JLabel()); // Empty cell
+        panel.add(selectedFileLabel);
+        JButton createButton = new JButton("Create Assignment");
+        createButton.addActionListener(e -> {
+            String title = titleField.getText();
+            String description = descriptionArea.getText();
+
+            if (selectedFile != null) {
+                String fileId = uploadFiles(selectedFile); // Upload the file and get the file ID
+                if (fileId != null && !fileId.isEmpty()) {
+                    saveAssignment(title, description, fileId); // Save the assignment with the file ID
+                    assignmentDialog.dispose(); // Close the dialog
+                } else {
+                    JOptionPane.showMessageDialog(assignmentDialog, "File upload failed.", "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                }
+            } else {
+                JOptionPane.showMessageDialog(assignmentDialog, "Please select a file to upload.", "Error",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        assignmentDialog.add(panel, BorderLayout.CENTER);
+        assignmentDialog.add(createButton, BorderLayout.SOUTH);
+        assignmentDialog.pack();
+        assignmentDialog.setLocationRelativeTo(null);
+        assignmentDialog.setVisible(true);
+    }
+
 }
