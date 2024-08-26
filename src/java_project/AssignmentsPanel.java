@@ -15,6 +15,7 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
+import java_project.models.ClassMember;
 import java_project.models.ClassRoom;
 import java_project.models.User;
 
@@ -23,16 +24,46 @@ public class AssignmentsPanel extends JPanel {
     private User user;
     private JPanel assignmentsPanel;
     private JLabel loadingLabel;
+    private boolean isAdmin;
+    @SuppressWarnings("unused")
+    private boolean isModerator;
 
     public AssignmentsPanel(ClassRoom classRoom, User user) {
         this.classRoom = classRoom;
         this.user = user;
+        checkUserRole();
 
         setLayout(new BorderLayout());
 
+        // Create a top panel to hold the back button and title
+        JPanel topPanel = new JPanel(new BorderLayout());
+
+        // Back button with icon
+        JButton backButton = new JButton("Back");
+        backButton.setIcon(new ImageIcon("path/to/your/back_icon.png")); // Replace with the actual path to your icon
+        backButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                navigateToClassDetails();
+            }
+        });
+        topPanel.add(backButton, BorderLayout.WEST);
+
+        // Title Label
         JLabel titleLabel = new JLabel("Assignments", JLabel.CENTER);
         titleLabel.setFont(new Font("Arial", Font.BOLD, 20));
-        add(titleLabel, BorderLayout.NORTH);
+        topPanel.add(titleLabel, BorderLayout.CENTER);
+
+        // Add the "Set Grades" button if the user is an admin
+        if (isAdmin) {
+            JButton setGradesButton = new JButton("Set Grades");
+            setGradesButton.addActionListener(e -> {
+                navigateToAssignmentGradesPanel();
+            });
+            topPanel.add(setGradesButton, BorderLayout.EAST);
+        }
+
+        add(topPanel, BorderLayout.NORTH);
 
         assignmentsPanel = new JPanel();
         assignmentsPanel.setLayout(new BoxLayout(assignmentsPanel, BoxLayout.Y_AXIS));
@@ -45,6 +76,34 @@ public class AssignmentsPanel extends JPanel {
         add(scrollPane, BorderLayout.CENTER);
 
         fetchAndDisplayAssignments();
+    }
+
+    private void navigateToClassDetails() {
+        removeAll();
+        add(new ClassDetails(classRoom, user));
+        revalidate();
+        repaint();
+    }
+
+    private void navigateToAssignmentGradesPanel() {
+        removeAll();
+        add(new AssignmentGradesPanel(classRoom, user));
+        revalidate();
+        repaint();
+    }
+
+    private void checkUserRole() {
+        for (ClassMember member : classRoom.getMembers()) {
+            String memberId = member.getUserId();
+            String role = member.getRole();
+            if (user.getId().equals(memberId)) {
+                if ("ADMIN".equals(role)) {
+                    isAdmin = true;
+                } else if ("MODERATOR".equals(role)) {
+                    isModerator = true;
+                }
+            }
+        }
     }
 
     private void fetchAndDisplayAssignments() {
@@ -61,9 +120,6 @@ public class AssignmentsPanel extends JPanel {
                 String response = Utility.executeGet(url);
                 JSONParser parser = new JSONParser();
                 JSONArray assignmentsArray = (JSONArray) parser.parse(response);
-
-                // Debugging: Print out the JSON structure
-                System.out.println("Assignments JSON Array: " + assignmentsArray.toJSONString());
 
                 SwingUtilities.invokeLater(() -> {
                     assignmentsPanel.remove(loadingLabel);
@@ -117,9 +173,13 @@ public class AssignmentsPanel extends JPanel {
 
             if (submission != null) {
                 displaySubmissionDetails(assignmentPanel, submission);
-            } else {
+            } else if (!isAdmin) { // Disable submission for admins
                 JButton submitButton = new JButton("Submit Assignment");
-                submitButton.addActionListener(e -> openFileChooser(assignmentId));
+                submitButton.addActionListener(e -> {
+                    submitButton.setEnabled(false); // Disable submit button
+                    submitButton.setText("Loading..."); // Show loading text
+                    openFileChooser(assignmentId, submitButton, assignmentPanel);
+                });
                 assignmentPanel.add(submitButton);
             }
 
@@ -157,7 +217,8 @@ public class AssignmentsPanel extends JPanel {
         assignmentPanel.add(gradeLabel);
     }
 
-    private void openFileChooser(String assignmentId) {
+    @SuppressWarnings("unchecked")
+    private void openFileChooser(String assignmentId, JButton submitButton, JPanel assignmentPanel) {
         JFileChooser fileChooser = new JFileChooser();
         FileNameExtensionFilter filter = new FileNameExtensionFilter("PDF and DOCX files", "pdf", "docx");
         fileChooser.setFileFilter(filter);
@@ -166,73 +227,104 @@ public class AssignmentsPanel extends JPanel {
         if (result == JFileChooser.APPROVE_OPTION) {
             File selectedFile = fileChooser.getSelectedFile();
             if (selectedFile != null) {
-                uploadAssignmentSubmission(assignmentId, selectedFile);
+                new Thread(() -> {
+                    String uploadResult = uploadAssignmentSubmission(assignmentId, selectedFile);
+                    SwingUtilities.invokeLater(() -> {
+                        if (uploadResult.startsWith("Upload successful:")) {
+                            // Replace loading text with submission details
+                            assignmentPanel.removeAll();
+                            JSONObject submissionResponse = new JSONObject();
+                            submissionResponse.put("fileName", selectedFile.getName());
+                            submissionResponse.put("filePath", selectedFile.getAbsolutePath());
+                            submissionResponse.put("grade", "Pending"); // Default to "Pending" after submission
+                            displaySubmissionDetails(assignmentPanel, submissionResponse);
+                            assignmentPanel.revalidate();
+                            assignmentPanel.repaint();
+                        } else {
+                            submitButton.setEnabled(true); // Re-enable submit button
+                            submitButton.setText("Submit Assignment"); // Reset button text
+                            JOptionPane.showMessageDialog(this, "Failed to submit the assignment: " + uploadResult,
+                                    "Submission Error", JOptionPane.ERROR_MESSAGE);
+                        }
+                    });
+                }).start();
             }
+        } else {
+            submitButton.setEnabled(true); // Re-enable submit button if the user cancels the file selection
+            submitButton.setText("Submit Assignment"); // Reset button text
         }
     }
 
-    private void uploadAssignmentSubmission(String assignmentId, File file) {
-        String url = "http://localhost:5000/api/assignments/" + assignmentId + "/submit";
-        String boundary = "===" + System.currentTimeMillis() + "===";
+    @SuppressWarnings("deprecation")
+    private String uploadAssignmentSubmission(String assignmentId, File file) {
+        String url = "http://localhost:5000/api/classrooms/" + assignmentId + "/submit";
+        String charset = "UTF-8";
+        String boundary = Long.toHexString(System.currentTimeMillis());
+        String CRLF = "\r\n";
 
+        HttpURLConnection connection = null;
         try {
-            HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
-            connection.setRequestMethod("POST");
+            // Set up connection
+            connection = (HttpURLConnection) new URL(url).openConnection();
             connection.setDoOutput(true);
             connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
 
-            try (OutputStream outputStream = connection.getOutputStream()) {
-                PrintWriter writer = new PrintWriter(new OutputStreamWriter(outputStream, "UTF-8"), true);
+            try (OutputStream output = connection.getOutputStream();
+                    PrintWriter writer = new PrintWriter(new OutputStreamWriter(output, charset), true)) {
+
+                // Add userId as a form field
+                writer.append("--").append(boundary).append(CRLF);
+                writer.append("Content-Disposition: form-data; name=\"userId\"").append(CRLF);
+                writer.append(CRLF).append(user.getId()).append(CRLF).flush();
 
                 // Add file part
-                String fileName = file.getName();
-                writer.append("--").append(boundary).append("\r\n");
-                writer.append("Content-Disposition: form-data; name=\"file\"; filename=\"").append(fileName)
-                        .append("\"\r\n");
-                writer.append("Content-Type: ").append(URLConnection.guessContentTypeFromName(fileName)).append("\r\n");
-                writer.append("Content-Transfer-Encoding: binary\r\n");
-                writer.append("\r\n");
-                writer.flush();
+                writer.append("--").append(boundary).append(CRLF);
+                writer.append("Content-Disposition: form-data; name=\"file\"; filename=\"").append(file.getName())
+                        .append("\"").append(CRLF);
+                writer.append("Content-Type: ").append(URLConnection.guessContentTypeFromName(file.getName()))
+                        .append(CRLF).append(CRLF).flush();
 
+                // Write file content
                 try (FileInputStream inputStream = new FileInputStream(file)) {
-                    byte[] buffer = new byte[4096];
+                    byte[] buffer = new byte[1024];
                     int bytesRead;
                     while ((bytesRead = inputStream.read(buffer)) != -1) {
-                        outputStream.write(buffer, 0, bytesRead);
+                        output.write(buffer, 0, bytesRead);
                     }
-                    outputStream.flush();
+                    output.flush(); // Ensure all bytes are written
                 }
 
-                writer.append("\r\n");
-                writer.flush();
-
-                // Add userId part
-                writer.append("--").append(boundary).append("\r\n");
-                writer.append("Content-Disposition: form-data; name=\"userId\"\r\n");
-                writer.append("\r\n");
-                writer.append(String.valueOf(user.getId())).append("\r\n");
-                writer.flush();
-
                 // End of multipart/form-data.
-                writer.append("--").append(boundary).append("--").append("\r\n");
-                writer.close();
+                writer.append(CRLF).append("--").append(boundary).append("--").append(CRLF).flush();
             }
 
+            // Handle response
             int responseCode = connection.getResponseCode();
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-                JOptionPane.showMessageDialog(this, "Assignment submitted successfully.");
-                fetchAndDisplayAssignments();
+            if (responseCode == HttpURLConnection.HTTP_CREATED) {
+                // Handle success response (e.g., parse JSON response)
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
+                    StringBuilder response = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        response.append(line);
+                    }
+                    // Parse and process response here (optional)
+                    return "Upload successful: " + response.toString();
+                }
             } else {
-                JOptionPane.showMessageDialog(this, "Failed to submit assignment. Please try again.", "Error",
-                        JOptionPane.ERROR_MESSAGE);
+                return "Upload failed: " + responseCode;
             }
         } catch (Exception e) {
             e.printStackTrace();
-            JOptionPane.showMessageDialog(this, "An error occurred while submitting the assignment: " + e.getMessage(),
-                    "Error", JOptionPane.ERROR_MESSAGE);
+            return "Error occurred while uploading file: " + e.getMessage();
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
         }
     }
 
+    @SuppressWarnings("deprecation")
     private void openFile(String filePath) {
         try {
             Desktop desktop = Desktop.getDesktop();

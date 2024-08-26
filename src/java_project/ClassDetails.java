@@ -1,14 +1,11 @@
 package java_project;
 
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.List;
 
 import javax.swing.*;
@@ -170,7 +167,7 @@ public class ClassDetails extends JPanel {
     }
 
     private void displayFiles(JSONArray filesArray) {
-        filesPanel.removeAll(); // Clear previous content
+        filesPanel.removeAll();
 
         for (Object obj : filesArray) {
             JSONObject fileObj = (JSONObject) obj;
@@ -178,8 +175,6 @@ public class ClassDetails extends JPanel {
             String fileType = (String) fileObj.get("fileType");
             String filePath = (String) fileObj.get("filePath");
             String uploadedBy = ((JSONObject) fileObj.get("user")).get("name").toString();
-            JSONArray commentsArray = (JSONArray) fileObj.get("comments");
-            System.out.println(fileObj.toJSONString());
             JPanel filePanel = new JPanel();
             filePanel.setLayout(new BoxLayout(filePanel, BoxLayout.Y_AXIS));
 
@@ -192,6 +187,7 @@ public class ClassDetails extends JPanel {
                 filePanel.add(fileButton);
             } else if (fileType.startsWith("image")) {
                 try {
+                    @SuppressWarnings("deprecation")
                     URL imageUrl = new URL(filePath);
                     ImageIcon imageIcon = new ImageIcon(imageUrl);
                     Image img = imageIcon.getImage();
@@ -205,9 +201,6 @@ public class ClassDetails extends JPanel {
                 }
             }
 
-            // Display existing comments
-
-            // Button to open comments dialog
             JButton viewCommentsButton = new JButton("View Comments");
             viewCommentsButton.addActionListener(e -> openCommentsDialog(fileObj));
             filePanel.add(viewCommentsButton);
@@ -215,7 +208,6 @@ public class ClassDetails extends JPanel {
             filesPanel.add(filePanel);
         }
 
-        // Refresh the panel to display new content
         SwingUtilities.invokeLater(() -> {
             filesPanel.revalidate();
             filesPanel.repaint();
@@ -226,15 +218,12 @@ public class ClassDetails extends JPanel {
         JDialog commentDialog = new JDialog((Frame) null, "Comments", true);
         commentDialog.setLayout(new BorderLayout());
 
-        // Create panel for comments
         JPanel commentsPanel = new JPanel();
         commentsPanel.setLayout(new BoxLayout(commentsPanel, BoxLayout.Y_AXIS));
 
-        // Load existing comments
         JSONArray commentsArray = (JSONArray) fileObj.get("comments");
         if (commentsArray != null) {
             for (Object commentObj : commentsArray) {
-                System.out.println(commentObj);
                 JSONObject comment = (JSONObject) commentObj;
                 String commentText = (String) comment.get("content");
                 String commentUser = ((JSONObject) comment.get("author")).get("name").toString();
@@ -243,14 +232,13 @@ public class ClassDetails extends JPanel {
             }
         }
 
-        // Create input field and button for adding a new comment
         JTextField commentField = new JTextField(30);
         JButton addCommentButton = new JButton("Add Comment");
         addCommentButton.addActionListener(e -> {
             String commentText = commentField.getText();
             if (!commentText.isEmpty()) {
                 addComment(fileObj, commentText);
-                commentDialog.dispose(); // Close the dialog
+                commentDialog.dispose(); 
             } else {
                 JOptionPane.showMessageDialog(commentDialog, "Comment cannot be empty.", "Error",
                         JOptionPane.ERROR_MESSAGE);
@@ -269,8 +257,9 @@ public class ClassDetails extends JPanel {
         commentDialog.setVisible(true);
     }
 
+    @SuppressWarnings("unchecked")
     private void addComment(JSONObject fileObj, String commentText) {
-        String fileId = ((Number) fileObj.get("id")).toString(); // Convert Long to String
+        String fileId = ((Number) fileObj.get("id")).toString(); 
         String url = "http://localhost:5000/api/classrooms/" + classRoom.getId() + "/files/" + fileId + "/comments";
 
         JSONObject jsonParam = new JSONObject();
@@ -281,10 +270,9 @@ public class ClassDetails extends JPanel {
             try {
                 String response = Utility.executePost(url, jsonParam.toString());
                 if (response != null && !response.isEmpty()) {
-                    System.out.println(response);
                     JOptionPane.showMessageDialog(this, "Comment added successfully!", "Success",
                             JOptionPane.INFORMATION_MESSAGE);
-                    fetchAndDisplayFiles(); // Refresh the file list to show the new comment
+                    fetchAndDisplayFiles(); 
                 } else {
                     JOptionPane.showMessageDialog(this, "Failed to add comment. No response from server.", "Error",
                             JOptionPane.ERROR_MESSAGE);
@@ -475,7 +463,6 @@ public class ClassDetails extends JPanel {
 
             int responseCode = connection.getResponseCode();
             if (responseCode == HttpURLConnection.HTTP_CREATED) {
-                // Parsing response to get the file ID
                 try (BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()))) {
                     StringBuilder response = new StringBuilder();
                     String line;
@@ -483,30 +470,25 @@ public class ClassDetails extends JPanel {
                         response.append(line);
                     }
 
-                    // Assuming the server returns a JSON object with the file ID within the
-                    // 'fileUpload' object
                     JSONParser parser = new JSONParser();
-                    System.out.println("Raw JSON Response: " + response.toString());
                     JSONObject jsonResponse = (JSONObject) parser.parse(response.toString());
-                    System.out.println("Parsed JSON Object: " + jsonResponse);
 
-                    // Navigate into the 'fileUpload' object and retrieve the 'id'
                     if (jsonResponse.containsKey("fileUpload")) {
                         JSONObject fileUpload = (JSONObject) jsonResponse.get("fileUpload");
                         if (fileUpload.containsKey("id")) {
                             String fileId = fileUpload.get("id").toString();
-                            fetchAndDisplayFiles(); // Refresh the UI
+                            fetchAndDisplayFiles();
                             return fileId;
                         } else {
                             System.err.println("Error: The key 'id' does not exist in the 'fileUpload' object.");
-                            return null; // Or throw an exception if this is considered an error case
+                            return null;
                         }
                     } else {
                         System.err.println("Error: The key 'fileUpload' does not exist in the response.");
-                        return null; // Or throw an exception if this is considered an error case
+                        return null;
                     }
                 } catch (Exception e) {
-                    e.printStackTrace(); // Print the stack trace for debugging
+                    e.printStackTrace();
                     return null;
                 }
             } else {
@@ -531,14 +513,13 @@ public class ClassDetails extends JPanel {
         jsonParam.put("description", description);
         jsonParam.put("fileId", fileId);
         jsonParam.put("createdBy", user.getId());
-        System.out.println(jsonParam);
         new Thread(() -> {
             try {
                 String response = Utility.executePost(url, jsonParam.toString());
                 if (response != null && !response.isEmpty()) {
                     JOptionPane.showMessageDialog(this, "Assignment created successfully!", "Success",
                             JOptionPane.INFORMATION_MESSAGE);
-                    fetchAndDisplayFiles(); // Refresh the UI to show the new assignment
+                    fetchAndDisplayFiles();
                 } else {
                     JOptionPane.showMessageDialog(this, "Failed to create assignment. No response from server.",
                             "Error",
@@ -558,7 +539,7 @@ public class ClassDetails extends JPanel {
 
         List<JComboBox<String>> roleSelectors = new ArrayList<>();
         List<String> userIds = new ArrayList<>();
-        String currentUserId = user.getId(); // Get the current user's ID
+        String currentUserId = user.getId();
 
         for (ClassMember member : classRoom.getMembers()) {
             String userId = member.getUserId();
@@ -600,17 +581,16 @@ public class ClassDetails extends JPanel {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private void updateUserRole(String userId, String role) {
         String url = "http://localhost:5000/api/classrooms/" + classRoom.getId() + "/update-member-role";
 
         JSONObject jsonParam = new JSONObject();
         jsonParam.put("userId", userId);
         jsonParam.put("role", role);
-        System.out.println(jsonParam);
         new Thread(() -> {
             try {
                 String response = Utility.executePut(url, jsonParam.toString());
-                System.out.println(response.toString());
                 if (response != null && !response.isEmpty()) {
                     JOptionPane.showMessageDialog(this, "User roles updated successfully!", "Success",
                             JOptionPane.INFORMATION_MESSAGE);
@@ -639,7 +619,6 @@ public class ClassDetails extends JPanel {
         descriptionArea.setRows(4);
         JScrollPane descriptionScrollPane = new JScrollPane(descriptionArea);
 
-        // File chooser for selecting an assignment file
         JLabel fileLabel = new JLabel("File:");
         JButton fileButton = new JButton("Choose File");
         JLabel selectedFileLabel = new JLabel("No file selected");
@@ -660,7 +639,7 @@ public class ClassDetails extends JPanel {
         panel.add(descriptionScrollPane);
         panel.add(fileLabel);
         panel.add(fileButton);
-        panel.add(new JLabel()); // Empty cell
+        panel.add(new JLabel());
         panel.add(selectedFileLabel);
         JButton createButton = new JButton("Create Assignment");
         createButton.addActionListener(e -> {
@@ -668,10 +647,10 @@ public class ClassDetails extends JPanel {
             String description = descriptionArea.getText();
 
             if (selectedFile != null) {
-                String fileId = uploadFiles(selectedFile); // Upload the file and get the file ID
+                String fileId = uploadFiles(selectedFile);
                 if (fileId != null && !fileId.isEmpty()) {
-                    saveAssignment(title, description, fileId); // Save the assignment with the file ID
-                    assignmentDialog.dispose(); // Close the dialog
+                    saveAssignment(title, description, fileId);
+                    assignmentDialog.dispose();
                 } else {
                     JOptionPane.showMessageDialog(assignmentDialog, "File upload failed.", "Error",
                             JOptionPane.ERROR_MESSAGE);
