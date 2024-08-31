@@ -35,12 +35,19 @@ public class AssignmentsPanel extends JPanel {
 
         setLayout(new BorderLayout());
 
-        // Create a top panel to hold the back button and title
         JPanel topPanel = new JPanel(new BorderLayout());
 
-        // Back button with icon
-        JButton backButton = new JButton("Back");
-        backButton.setIcon(new ImageIcon("path/to/your/back_icon.png")); // Replace with the actual path to your icon
+        ImageIcon backIcon = new ImageIcon(getClass().getResource("/java_project/back-icon.png"));
+        ImageIcon scaledBackIcon = new ImageIcon(
+                backIcon.getImage().getScaledInstance(20, 20, java.awt.Image.SCALE_AREA_AVERAGING));
+
+        JButton backButton = new JButton(scaledBackIcon);
+
+        backButton.setContentAreaFilled(false);
+        backButton.setBorderPainted(false);
+        backButton.setFocusPainted(false);
+        backButton.setOpaque(false);
+
         backButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -49,14 +56,12 @@ public class AssignmentsPanel extends JPanel {
         });
         topPanel.add(backButton, BorderLayout.WEST);
 
-        // Title Label
-        JLabel titleLabel = new JLabel("Assignments", JLabel.CENTER);
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 20));
-        topPanel.add(titleLabel, BorderLayout.CENTER);
-
-        // Add the "Set Grades" button if the user is an admin
         if (isAdmin) {
-            JButton setGradesButton = new JButton("Set Grades");
+            JButton setGradesButton = new JButton("Grades");
+            setGradesButton.setContentAreaFilled(false);
+            setGradesButton.setBorderPainted(false);
+            setGradesButton.setFocusPainted(false);
+            setGradesButton.setOpaque(false);
             setGradesButton.addActionListener(e -> {
                 navigateToAssignmentGradesPanel();
             });

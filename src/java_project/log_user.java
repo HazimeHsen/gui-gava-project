@@ -10,7 +10,6 @@ import org.json.simple.parser.JSONParser;
 import java_project.models.User;
 import javax.swing.SwingWorker;
 
-
 public class log_user extends javax.swing.JFrame {
     private Animator animatorLogin;
     private boolean signIn;
@@ -33,7 +32,8 @@ public class log_user extends javax.swing.JFrame {
         panelLogin = new javax.swing.JPanel();
         jPanel1 = new javax.swing.JPanel();
         jLabel1 = new javax.swing.JLabel();
-        cmdSignIn = new components.Button();
+        cmdSignIn = new components.Button("Sign In");
+        btnSignUp = new components.Button("Don't have an account? Signup");
         txtUser = new components.TextField();
         txtPass = new components.PasswordField();
 
@@ -47,12 +47,19 @@ public class log_user extends javax.swing.JFrame {
 
         cmdSignIn.setBackground(new java.awt.Color(157, 153, 255));
         cmdSignIn.setForeground(new java.awt.Color(255, 255, 255));
-        cmdSignIn.setText("Sign In");
         cmdSignIn.setEffectColor(new java.awt.Color(199, 196, 255));
         cmdSignIn.addActionListener(evt -> cmdSignInActionPerformed(evt));
 
+        btnSignUp.setPreferredSize(new Dimension(300, 40));
+        btnSignUp.setBackground(new Color(245, 245, 245));
+        btnSignUp.setForeground(new Color(31, 130, 228));
+        btnSignUp.setBorder(null);
+        btnSignUp.setEffectColor(null);
+        btnSignUp.setFont(btnSignUp.getFont().deriveFont(14f).deriveFont(java.awt.Font.ITALIC));
+        btnSignUp.addActionListener(evt -> btnSignUpActionPerformed(evt));
+
         txtUser.setBackground(new java.awt.Color(245, 245, 245));
-        txtUser.setLabelText("User Name");
+        txtUser.setLabelText("Email");
         txtUser.setLineColor(new java.awt.Color(131, 126, 253));
         txtUser.setSelectionColor(new java.awt.Color(157, 153, 255));
         txtUser.setText("hsen@gmail.com");
@@ -75,6 +82,8 @@ public class log_user extends javax.swing.JFrame {
                                                 javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                                         .addComponent(cmdSignIn, javax.swing.GroupLayout.DEFAULT_SIZE,
                                                 javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                        .addComponent(btnSignUp, javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                                         .addComponent(jLabel1, javax.swing.GroupLayout.DEFAULT_SIZE, 310,
                                                 Short.MAX_VALUE))
                                 .addGap(20, 20, 20)));
@@ -89,9 +98,12 @@ public class log_user extends javax.swing.JFrame {
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(txtPass, javax.swing.GroupLayout.PREFERRED_SIZE,
                                         javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 30,
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 20,
                                         Short.MAX_VALUE)
                                 .addComponent(cmdSignIn, javax.swing.GroupLayout.PREFERRED_SIZE, 40,
+                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(btnSignUp, javax.swing.GroupLayout.PREFERRED_SIZE, 40,
                                         javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addContainerGap()));
 
@@ -149,9 +161,7 @@ public class log_user extends javax.swing.JFrame {
                 action = false;
             }
             if (action) {
-//                enableLogin(false);
-//                cmdSignIn.setText("Loading...");
-
+                cmdSignIn.setText("Loading...");
                 new SwingWorker<Void, Void>() {
                     @Override
                     protected Void doInBackground() {
@@ -162,18 +172,11 @@ public class log_user extends javax.swing.JFrame {
                     @Override
                     protected void done() {
                         cmdSignIn.setText("Sign In");
-                        enableLogin(true);
-                       
+                        cmdSignIn.setEnabled(true);
                     }
                 }.execute();
             }
         }
-    }
-
-    private void enableLogin(boolean action) {
-        txtUser.setEditable(action);
-        txtPass.setEditable(action);
-        cmdSignIn.setEnabled(action);
     }
 
     @SuppressWarnings("unchecked")
@@ -205,6 +208,10 @@ public class log_user extends javax.swing.JFrame {
             }
         } catch (Exception e) {
             e.printStackTrace();
+            SwingUtilities.invokeLater(() -> {
+                cmdSignIn.setText("Sign In");
+                cmdSignIn.setEnabled(true);
+            });
         }
     }
 
@@ -229,7 +236,7 @@ public class log_user extends javax.swing.JFrame {
                 txtUser.setVisible(false);
                 txtPass.setVisible(false);
                 cmdSignIn.setVisible(false);
-               
+                btnSignUp.setVisible(false);
             }
 
             @Override
@@ -240,6 +247,12 @@ public class log_user extends javax.swing.JFrame {
 
         animatorLogin = new Animator(500, targetLogin);
         animatorLogin.setResolution(0);
+    }
+
+    private void btnSignUpActionPerformed(java.awt.event.ActionEvent evt) {
+
+        this.dispose();
+        new signUp().setVisible(true);
     }
 
     public static void main(String args[]) {
@@ -253,6 +266,7 @@ public class log_user extends javax.swing.JFrame {
     private javax.swing.JPanel jPanel1;
     private javax.swing.JLabel jLabel1;
     private components.Button cmdSignIn;
+    private components.Button btnSignUp;
     private components.TextField txtUser;
     private components.PasswordField txtPass;
 }

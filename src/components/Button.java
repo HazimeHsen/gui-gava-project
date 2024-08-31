@@ -1,6 +1,5 @@
 package components;
 
-
 import java.awt.AlphaComposite;
 import java.awt.Color;
 import java.awt.Cursor;
@@ -19,14 +18,6 @@ import org.jdesktop.animation.timing.TimingTargetAdapter;
 
 public class Button extends JButton {
 
-    public Color getEffectColor() {
-        return effectColor;
-    }
-
-    public void setEffectColor(Color effectColor) {
-        this.effectColor = effectColor;
-    }
-
     private Animator animator;
     private int targetSize;
     private float animatSize;
@@ -34,7 +25,18 @@ public class Button extends JButton {
     private float alpha;
     private Color effectColor = new Color(255, 255, 255);
 
+    // Constructor that accepts a String argument
+    public Button(String text) {
+        super(text); // Pass the text to the JButton constructor
+        initButton();
+    }
+
+    // Default constructor
     public Button() {
+        initButton();
+    }
+
+    private void initButton() {
         setContentAreaFilled(false);
         setBorder(new EmptyBorder(5, 0, 5, 0));
         setBackground(Color.WHITE);
@@ -66,7 +68,14 @@ public class Button extends JButton {
         animator.setResolution(0);
         animator.setAcceleration(0.5f);
         animator.setDeceleration(0.5f);
+    }
 
+    public Color getEffectColor() {
+        return effectColor;
+    }
+
+    public void setEffectColor(Color effectColor) {
+        this.effectColor = effectColor;
     }
 
     @Override
@@ -88,4 +97,3 @@ public class Button extends JButton {
         super.paintComponent(grphcs);
     }
 }
-
