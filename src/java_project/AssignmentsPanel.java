@@ -15,6 +15,7 @@ import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 
+import components.RoundedPanel;
 import java_project.models.ClassMember;
 import java_project.models.ClassRoom;
 import java_project.models.User;
@@ -72,6 +73,8 @@ public class AssignmentsPanel extends JPanel {
 
         assignmentsPanel = new JPanel();
         assignmentsPanel.setLayout(new BoxLayout(assignmentsPanel, BoxLayout.Y_AXIS));
+        assignmentsPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+
         loadingLabel = new JLabel("Loading assignments...");
         assignmentsPanel.add(loadingLabel);
 
@@ -163,48 +166,71 @@ public class AssignmentsPanel extends JPanel {
             JSONObject submission = submissionsArray.isEmpty() ? null : (JSONObject) submissionsArray.get(0);
             JSONObject file = (JSONObject) assignmentObj.get("file");
 
-            JPanel assignmentPanel = new JPanel();
-            assignmentPanel.setLayout(new BoxLayout(assignmentPanel, BoxLayout.Y_AXIS));
-            assignmentPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+            // Create a wrapper panel to center the RoundedPanel
+            JPanel wrapperPanel = new JPanel();
+            wrapperPanel.setLayout(new BoxLayout(wrapperPanel, BoxLayout.X_AXIS));
+            wrapperPanel.setOpaque(false); // Ensure the wrapper panel is transparent
+            wrapperPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+            // Create a rounded card panel for each assignment
+            RoundedPanel cardPanel = new RoundedPanel(20); // Adjust the radius as needed
+            cardPanel.setLayout(new BoxLayout(cardPanel, BoxLayout.Y_AXIS));
+
+            // Center align components within the cardPanel
+            cardPanel.setBackground(Color.WHITE);
+            cardPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20)); // Optional padding for the card
 
             JLabel titleLabel = new JLabel(assignmentTitle);
-            titleLabel.setFont(new Font("Arial", Font.BOLD, 14));
-            assignmentPanel.add(titleLabel);
+            titleLabel.setFont(new Font("Arial", Font.BOLD, 16));
+            titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT); // Center alignment
+            cardPanel.add(titleLabel);
 
-            JLabel descriptionLabel = new JLabel(
-                    "<html><p style=\"width: 400px;\">" + assignmentDescription + "</p></html>");
-            descriptionLabel.setFont(new Font("Arial", Font.PLAIN, 12));
-            assignmentPanel.add(descriptionLabel);
+            JLabel descriptionLabel = new JLabel(assignmentDescription);
+            descriptionLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+            descriptionLabel.setAlignmentX(Component.CENTER_ALIGNMENT); // Center alignment
+            cardPanel.add(descriptionLabel);
 
             if (submission != null) {
-                displaySubmissionDetails(assignmentPanel, submission);
+                displaySubmissionDetails(cardPanel, submission);
             } else if (!isAdmin) { // Disable submission for admins
                 JButton submitButton = new JButton("Submit Assignment");
                 submitButton.addActionListener(e -> {
                     submitButton.setEnabled(false); // Disable submit button
                     submitButton.setText("Loading..."); // Show loading text
-                    openFileChooser(assignmentId, submitButton, assignmentPanel);
+                    openFileChooser(assignmentId, submitButton, cardPanel);
                 });
-                assignmentPanel.add(submitButton);
+                submitButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+                cardPanel.add(submitButton);
             }
 
             if (file != null) {
                 String filePath = (String) file.get("filePath");
-                JButton viewFileButton = new JButton("View Assignment File");
+                components.Button viewFileButton = new components.Button("View Assignment");
+                viewFileButton.setBackground(new java.awt.Color(157, 153, 255));
+                viewFileButton.setForeground(new java.awt.Color(255, 255, 255));
+                viewFileButton.setPreferredSize(new Dimension(400, 100));
+                viewFileButton.setEffectColor(new java.awt.Color(199, 196, 255));
                 viewFileButton.addActionListener(e -> openFile(filePath));
-                assignmentPanel.add(viewFileButton);
+                viewFileButton.setAlignmentX(Component.CENTER_ALIGNMENT);
+                cardPanel.add(viewFileButton);
             }
 
-            assignmentsPanel.add(assignmentPanel);
-            assignmentsPanel.add(Box.createRigidArea(new Dimension(0, 10))); // Add spacing between assignments
+            cardPanel.setPreferredSize(new Dimension(400, 200));
+            cardPanel.setMaximumSize(new Dimension(400, 200));
+            wrapperPanel.add(Box.createHorizontalGlue());
+            wrapperPanel.add(cardPanel);
+            wrapperPanel.add(Box.createHorizontalGlue());
+
+            assignmentsPanel.add(wrapperPanel);
+            assignmentsPanel.add(Box.createRigidArea(new Dimension(0, 10)));
         }
 
-        // Refresh the panel to display new content
         SwingUtilities.invokeLater(() -> {
             assignmentsPanel.revalidate();
             assignmentsPanel.repaint();
         });
     }
+
 
     private void displaySubmissionDetails(JPanel assignmentPanel, JSONObject submission) {
         String fileName = (String) submission.get("fileName");
@@ -236,18 +262,17 @@ public class AssignmentsPanel extends JPanel {
                     String uploadResult = uploadAssignmentSubmission(assignmentId, selectedFile);
                     SwingUtilities.invokeLater(() -> {
                         if (uploadResult.startsWith("Upload successful:")) {
-                            // Replace loading text with submission details
                             assignmentPanel.removeAll();
                             JSONObject submissionResponse = new JSONObject();
                             submissionResponse.put("fileName", selectedFile.getName());
                             submissionResponse.put("filePath", selectedFile.getAbsolutePath());
-                            submissionResponse.put("grade", "Pending"); // Default to "Pending" after submission
+                            submissionResponse.put("grade", "Pending");
                             displaySubmissionDetails(assignmentPanel, submissionResponse);
                             assignmentPanel.revalidate();
                             assignmentPanel.repaint();
                         } else {
-                            submitButton.setEnabled(true); // Re-enable submit button
-                            submitButton.setText("Submit Assignment"); // Reset button text
+                            submitButton.setEnabled(true);
+                            submitButton.setText("Submit Assignment");
                             JOptionPane.showMessageDialog(this, "Failed to submit the assignment: " + uploadResult,
                                     "Submission Error", JOptionPane.ERROR_MESSAGE);
                         }
@@ -255,8 +280,8 @@ public class AssignmentsPanel extends JPanel {
                 }).start();
             }
         } else {
-            submitButton.setEnabled(true); // Re-enable submit button if the user cancels the file selection
-            submitButton.setText("Submit Assignment"); // Reset button text
+            submitButton.setEnabled(true);
+            submitButton.setText("Submit Assignment");
         }
     }
 
@@ -269,7 +294,6 @@ public class AssignmentsPanel extends JPanel {
 
         HttpURLConnection connection = null;
         try {
-            // Set up connection
             connection = (HttpURLConnection) new URL(url).openConnection();
             connection.setDoOutput(true);
             connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
@@ -277,33 +301,28 @@ public class AssignmentsPanel extends JPanel {
             try (OutputStream output = connection.getOutputStream();
                     PrintWriter writer = new PrintWriter(new OutputStreamWriter(output, charset), true)) {
 
-                // Add userId as a form field
                 writer.append("--").append(boundary).append(CRLF);
                 writer.append("Content-Disposition: form-data; name=\"userId\"").append(CRLF);
                 writer.append(CRLF).append(user.getId()).append(CRLF).flush();
 
-                // Add file part
                 writer.append("--").append(boundary).append(CRLF);
                 writer.append("Content-Disposition: form-data; name=\"file\"; filename=\"").append(file.getName())
                         .append("\"").append(CRLF);
                 writer.append("Content-Type: ").append(URLConnection.guessContentTypeFromName(file.getName()))
                         .append(CRLF).append(CRLF).flush();
 
-                // Write file content
                 try (FileInputStream inputStream = new FileInputStream(file)) {
                     byte[] buffer = new byte[1024];
                     int bytesRead;
                     while ((bytesRead = inputStream.read(buffer)) != -1) {
                         output.write(buffer, 0, bytesRead);
                     }
-                    output.flush(); // Ensure all bytes are written
+                    output.flush();
                 }
 
-                // End of multipart/form-data.
                 writer.append(CRLF).append("--").append(boundary).append("--").append(CRLF).flush();
             }
 
-            // Handle response
             int responseCode = connection.getResponseCode();
             if (responseCode == HttpURLConnection.HTTP_CREATED) {
                 // Handle success response (e.g., parse JSON response)
